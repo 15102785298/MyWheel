@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="GB2312" standalone="no"?>
+<TEST_PACK note="自动生成的测试用例">
+<TEST>
+<sub block="1" id="555555555" livetime="5000" note="测试用例:555555555" pack_ver="32" pri="8">
+<inparams note="555555555测试用例">
+<in name="csdc_unqu_trade_restricts" value="1"/>
+<in name="csdc_cancel_date" value="0"/>
+</inparams>
+<route branch="" esb_name="" esb_no="0" neighbor="" plugin="" sub_system="" system=""/>
+</sub>
+</TEST>
+</TEST_PACK>
