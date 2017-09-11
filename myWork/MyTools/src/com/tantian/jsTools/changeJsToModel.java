@@ -9,8 +9,8 @@ import java.util.Scanner;
 import org.apache.commons.lang3.StringUtils;
 
 public class changeJsToModel {
-	public static void main(String[] args) throws IOException {
-		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+	public  String TransFormJsToMap(BufferedReader br) throws IOException{
 		String temp = br.readLine();
 		String res = "{";
 		while(!temp.equals("}")){
@@ -24,7 +24,10 @@ public class changeJsToModel {
 			res = res + temp.trim();
 			temp = br.readLine();
 		}
-		res += "}";
-		System.out.println(res);
+		return res += "}";
+
+	}
+	public static void main(String[] args) throws IOException {
+		//System.out.println(TransFormJsToMap());
 	}
 }
