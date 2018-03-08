@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.swing.text.html.parser.Entity;
 
@@ -164,12 +165,18 @@ public class getAllRef {
 			BufferedReader br = new BufferedReader(reader); // 建立一个对象，它把文件内容转成计算机能读懂的语言
 			String line = "";
 			int readTime = 1;
+			String nowMethod = "";
 			line = br.readLine();
 			while (line != null) {
 				// System.out.println("读取" + readTime++ + line);
 				if (StringUtils.startsWith(line.trim(), "//")) {
 					line = br.readLine(); // 一次读入一行数据
 					continue;
+				}
+				// 更新当前方法名
+				// 方法声明不能有"."
+				if (StringUtils.indexOf(line, ".") < 0) {
+
 				}
 				for (String temp : findValueList) {
 					if (StringUtils.indexOf(line, temp) > -1) {
@@ -222,7 +229,6 @@ public class getAllRef {
 
 		}
 		outStream.write(("-------------------BOP调用的功能号----------------------\r\n").getBytes());
-
 		outStream.close(); // 关闭文件输出流
 		System.out.println("文件生成完毕！");
 	}
@@ -256,6 +262,11 @@ public class getAllRef {
 					add("USERFunction.java");
 					add("Functions.java");
 					add("FunctionsUf2.java");
+					add("UFFunctionExt.java");
+					add("UFFunctionBus.java");
+					add("Function.java");
+					add("BOPFunction.java");
+					add("FunctionsAcpt.java");
 				}
 			}));
 			System.out.println("处理完成文件" + aimFile.getName());
@@ -271,16 +282,15 @@ public class getAllRef {
 			functionName2File.put(temp, res);
 		}
 		System.out.println("转换完毕，等待输出....");
-		File file = new File("D://BOP被引用的功能号"); // 文件路径（路径+文件名）
+		File file = new File("D://BOP被引用的功能号.txt"); // 文件路径（路径+文件名）
 		// 输出结果
 		printRes(functionName, function, functionName2File, file);
 
 		// 查找这些service在那些action中被注入
 		Map<String, List<File>> service2Action = new HashMap<>();
 
-		System.out.println(function.size());
-		System.out.println(functionName.size());
-		System.out.println(allFile.size());
+		System.out.println("本次处理常量【" + function.size() + "】条");
+		System.out.println("本次处理文件【" + allFile.size() + "】个");
 	}
 
 }
