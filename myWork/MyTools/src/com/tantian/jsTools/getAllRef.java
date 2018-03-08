@@ -14,9 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.regex.Pattern;
-
-import javax.swing.text.html.parser.Entity;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -146,16 +143,25 @@ public class getAllRef {
 		return false;
 	}
 
-	public static List<String> findMutiValueInFile(File readFile, List<String> findValueList,
+	public static Map<String, Object> findMutiValueInFile(File readFile, List<String> findValueList,
 			List<String> fileStuffix) {
-		List<String> res = new LinkedList<>();
+		Map<String, Object> resFinal = new HashMap<>();
+		Map<String, List<String>> function_fileName2Method = new HashMap<>();
+
+		List<List<String>> res = new LinkedList<>();
+		List<String> res1 = new LinkedList<>();
+		List<String> res2 = new LinkedList<>();
 		try { // 防止文件建立或读取失败，用catch捕捉错误并打印，也可以throw
 			File filename = readFile; // 要读取以上路径的input。txt文件
 			// 根据后缀筛选
 			if (fileStuffix != null) {
 				for (String temp : fileStuffix) {
 					if (StringUtils.equals(filename.getName(), temp)) {
-						return new LinkedList<>();
+						res.add(res1);
+						res.add(res2);
+						resFinal.put("list", res);
+						resFinal.put("map", new HashMap<>());
+						return resFinal;
 					}
 				}
 			}
@@ -168,21 +174,37 @@ public class getAllRef {
 			String nowMethod = "";
 			line = br.readLine();
 			while (line != null) {
+				line = line.trim();
 				// System.out.println("读取" + readTime++ + line);
-				if (StringUtils.startsWith(line.trim(), "//")) {
+				if (StringUtils.startsWith(line, "//")) {
 					line = br.readLine(); // 一次读入一行数据
 					continue;
 				}
 				// 更新当前方法名
 				// 方法声明不能有"."
 				if (StringUtils.indexOf(line, ".") < 0) {
-
+					if (StringUtils.startsWith(line, "public") || StringUtils.startsWith(line, "private")
+							|| StringUtils.startsWith(line, "protected")) {
+						if (StringUtils.contains(line, "(")) {
+							nowMethod = StringUtils.split(line, "(")[0].trim()
+									.split(" ")[StringUtils.split(line, "(")[0].trim().split(" ").length - 1];
+						}
+					}
 				}
 				for (String temp : findValueList) {
 					if (StringUtils.indexOf(line, temp) > -1) {
 						System.out.println(new StringBuffer().append("文件：").append(filename.getName()).append("找到目标字段：")
-								.append(temp).toString());
-						res.add(temp);
+								.append(temp).append("对应方法为：").append(nowMethod == "" ? "未找到方法" : nowMethod)
+								.toString());
+						res1.add(temp);
+						res2.add(nowMethod);
+						if (function_fileName2Method.get(temp + "-" + filename.getName()) == null) {
+							List<String> tempList = new LinkedList<>();
+							tempList.add(nowMethod);
+							function_fileName2Method.put(temp + "-" + filename.getName(), tempList);
+						} else {
+							function_fileName2Method.get(temp + "-" + filename.getName()).add(nowMethod);
+						}
 					}
 				}
 
@@ -191,11 +213,16 @@ public class getAllRef {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return res;
+		res.add(res1);
+		res.add(res2);
+		resFinal.put("list", res);
+		resFinal.put("map", function_fileName2Method);
+		return resFinal;
 	}
 
 	private static void printRes(List<String> functionName, List<String> function,
-			Map<String, List<File>> functionName2File, File file) throws FileNotFoundException, IOException {
+			Map<String, List<File>> functionName2File, File file, Map<String, List<String>> functionName2Method,
+			Map<String, List<String>> function_fileName2Method) throws FileNotFoundException, IOException {
 		FileOutputStream outStream = new FileOutputStream(file); // 文件输出流用于将数据写入文件
 		// 有被引用的功能号以及引用它的service
 		System.out.println("----------生成文件预览----------");
@@ -216,9 +243,18 @@ public class getAllRef {
 			}
 			outStream.write(("-------------------功能号【" + functinId + "】----------------------\r\n").getBytes());
 			System.out.println("-------------------功能号【" + functinId + "】----------------------");
+			StringBuffer sb = new StringBuffer();
 			for (File temp : aimValue.getValue()) {
-				System.out.println(temp.getName());
-				outStream.write((temp.getName() + "\r\n").getBytes());
+				List<String> function_fileName2MethodList = function_fileName2Method
+						.get(aimValue.getKey() + "-" + temp.getName());
+				for (String MethodName : function_fileName2MethodList) {
+					sb.setLength(0);
+					sb.append("类名【").append(temp.getName()).append("】方法名【").append(MethodName).append("】")
+							.append("常量名【").append(aimValue.getKey()).append("】");
+					System.out.println(sb.toString());
+					outStream.write(sb.append("\r\n").toString().getBytes());
+				}
+
 			}
 			System.out.println("-------------------功能号【" + functinId + "】----------------------");
 			outStream.write(("-------------------功能号【" + functinId + "】----------------------\r\n").getBytes());
@@ -233,6 +269,7 @@ public class getAllRef {
 		System.out.println("文件生成完毕！");
 	}
 
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException {
 		// 读取目录下所有文件
 		find("D://zt//BOP//Sources//WebCodes//bop2.0", depth);
@@ -253,9 +290,12 @@ public class getAllRef {
 		// 获取function列表
 		List<String> function = getFunctionValue(uffunction.get(0));
 		Map<String, List<File>> functionName2File = new HashMap<>();
-		Map<File, List<String>> File2functionName = new HashMap<>();
+		Map<String, List<String>> functionName2Method = new HashMap<>();
+		Map<String, List<String>> function_fileName2Method = new HashMap<>();
+		Map<File, List<List<String>>> File2functionName = new HashMap<>();
+		Map<File, List<String>> File2Method = new HashMap<>();
 		for (File aimFile : allFile) {
-			File2functionName.put(aimFile, findMutiValueInFile(aimFile, functionName, new LinkedList<String>() {
+			Map<String, Object> valueInfileMap = findMutiValueInFile(aimFile, functionName, new LinkedList<String>() {
 				{
 					add("UFFunction.java");
 					add("UFFunctionCounter.java");
@@ -268,23 +308,37 @@ public class getAllRef {
 					add("BOPFunction.java");
 					add("FunctionsAcpt.java");
 				}
-			}));
+			});
+			List<List<String>> temp = (List<List<String>>) valueInfileMap.get("list");
+			function_fileName2Method.putAll((Map<String, List<String>>) valueInfileMap.get("map"));
+			File2functionName.put(aimFile, temp);
 			System.out.println("处理完成文件" + aimFile.getName());
 		}
 		System.out.println("转换中....");
 		for (String temp : functionName) {
 			List<File> res = new LinkedList<>();
-			for (Entry<File, List<String>> aimValue : File2functionName.entrySet()) {
-				if (aimValue.getValue().indexOf(temp) > -1) {
+			for (Entry<File, List<List<String>>> aimValue : File2functionName.entrySet()) {
+				if (aimValue.getValue().get(0).indexOf(temp) > -1) {
 					res.add(aimValue.getKey());
 				}
 			}
 			functionName2File.put(temp, res);
 		}
-		System.out.println("转换完毕，等待输出....");
-		File file = new File("D://BOP被引用的功能号.txt"); // 文件路径（路径+文件名）
+
+		for (String temp : functionName) {
+			List<String> res = new LinkedList<>();
+			for (Entry<File, List<List<String>>> aimValue : File2functionName.entrySet()) {
+				if (aimValue.getValue().get(0).indexOf(temp) > -1) {
+					res.addAll(aimValue.getValue().get(1));
+				}
+			}
+			functionName2Method.put(temp, res);
+		}
+		String outputpath = "D://BOP被引用的功能号.txt";
+		System.out.println("转换完毕，等待输出....输出路径：" + outputpath);
+		File file = new File(outputpath); // 文件路径（路径+文件名）
 		// 输出结果
-		printRes(functionName, function, functionName2File, file);
+		printRes(functionName, function, functionName2File, file, functionName2Method, function_fileName2Method);
 
 		// 查找这些service在那些action中被注入
 		Map<String, List<File>> service2Action = new HashMap<>();
