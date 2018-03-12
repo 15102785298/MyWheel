@@ -165,12 +165,9 @@ public class getAllRef {
 					}
 				}
 			}
-			// System.out.println("查找文件中：" + filename.getName() + "目标字段：" +
-			// findValue);
 			InputStreamReader reader = new InputStreamReader(new FileInputStream(filename), "UTF-8"); // 建立一个输入流对象reader
 			BufferedReader br = new BufferedReader(reader); // 建立一个对象，它把文件内容转成计算机能读懂的语言
 			String line = "";
-			int readTime = 1;
 			String nowMethod = "";
 			line = br.readLine();
 			while (line != null) {
@@ -293,7 +290,6 @@ public class getAllRef {
 		Map<String, List<String>> functionName2Method = new HashMap<>();
 		Map<String, List<String>> function_fileName2Method = new HashMap<>();
 		Map<File, List<List<String>>> File2functionName = new HashMap<>();
-		Map<File, List<String>> File2Method = new HashMap<>();
 		for (File aimFile : allFile) {
 			Map<String, Object> valueInfileMap = findMutiValueInFile(aimFile, functionName, new LinkedList<String>() {
 				{
@@ -341,7 +337,7 @@ public class getAllRef {
 		printRes(functionName, function, functionName2File, file, functionName2Method, function_fileName2Method);
 
 		// 查找这些service在那些action中被注入
-		Map<String, List<File>> service2Action = new HashMap<>();
+		System.out.println("开始查找action...");
 
 		System.out.println("本次处理常量【" + function.size() + "】条");
 		System.out.println("本次处理文件【" + allFile.size() + "】个");
