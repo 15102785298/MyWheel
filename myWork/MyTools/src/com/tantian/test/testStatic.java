@@ -20,34 +20,6 @@ public class testStatic {
 
 	private static void getStrings() {
 		String str = " package com.hundsun.bop.acct.pub.service;  import com.hundsun.bop.acct.pub.form.view.BankConfig;   public interface IBankHandleService { BankConfig getBankConfig(String bank_no);  String getSubAddress(String bank_no, String address, String fieldName);  boolean fundOutTrans(String bank_no, String bank_error_info); }  ";
-		Pattern p = Pattern.compile("//((//S*)//);");
-		Matcher m = p.matcher(str);
-		ArrayList<String> strs = new ArrayList<String>();
-		ClassLoader cl = testStatic.class.getClassLoader();
-		BopClassLoaderUtils bc = null;
-		// 如何获得ClassLoader参考1
-
-		try {
-			bc = new BopClassLoaderUtils(FileUtils.getAllFile("D:\\aaWork\\WEB-INF", ".jar"));
-		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		Map<String, Class<?>> a = bc.getAllClass();
-		for (Entry<String, Class<?>> temp : a.entrySet()) {
-			System.out.println(temp.getKey() + "----------success");
-			Class<?> aa = temp.getValue();
-			aa.getMethods();
-		}
-		while (m.find()) {
-			strs.add(m.group(1));
-		}
-		for (String s : strs) {
-			System.out.println(s);
-		}
 	}
 
 	public static void main(String[] args) {

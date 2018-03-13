@@ -41,7 +41,7 @@ public class BopClassLoaderUtils extends ClassLoader {
 	 * @throws SecurityException
 	 * @throws NoSuchMethodException
 	 */
-	public BopClassLoaderUtils(List<File> allJar) throws NoSuchMethodException, SecurityException {
+	public BopClassLoaderUtils(List<File> allJar) {
 		map = new HashMap<String, byte[]>(64);
 		preReadJarFile(allJar);
 	}
