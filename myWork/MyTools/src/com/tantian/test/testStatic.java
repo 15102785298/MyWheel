@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.tantian.bopUtils.BopClassLoader;
+import com.tantian.bopUtils.BopClassLoaderUtils;
 import com.tantian.bopUtils.FileUtils;
 
 /***
@@ -24,11 +24,11 @@ public class testStatic {
 		Matcher m = p.matcher(str);
 		ArrayList<String> strs = new ArrayList<String>();
 		ClassLoader cl = testStatic.class.getClassLoader();
-		BopClassLoader bc = null;
+		BopClassLoaderUtils bc = null;
 		// 如何获得ClassLoader参考1
 
 		try {
-			bc = new BopClassLoader("D:/aaWork/TomcatPublishWorkspaces/bop20180305/wtpwebapps/bop-web/",FileUtils.getAllFile("D:\\aaWork\\WEB-INF", ".jar"));
+			bc = new BopClassLoaderUtils(FileUtils.getAllFile("D:\\aaWork\\WEB-INF", ".jar"));
 		} catch (NoSuchMethodException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

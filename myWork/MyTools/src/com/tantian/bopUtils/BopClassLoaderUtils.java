@@ -20,7 +20,7 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class BopClassLoader extends ClassLoader {
+public class BopClassLoaderUtils extends ClassLoader {
 	/**
 	 * lib:表示加载的文件在jar包中 类似tomcat就是{PROJECT}/WEB-INF/lib/
 	 */
@@ -41,7 +41,7 @@ public class BopClassLoader extends ClassLoader {
 	 * @throws SecurityException
 	 * @throws NoSuchMethodException
 	 */
-	public BopClassLoader(String webPath, List<File> allJar) throws NoSuchMethodException, SecurityException {
+	public BopClassLoaderUtils(List<File> allJar) throws NoSuchMethodException, SecurityException {
 		map = new HashMap<String, byte[]>(64);
 		preReadJarFile(allJar);
 	}
