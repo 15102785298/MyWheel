@@ -11,7 +11,7 @@ public class PatternUtils {
 		Pattern pattern = Pattern.compile(regex);
 		Matcher macher = pattern.matcher(mainString);
 		while (macher.find()) {
-			res.add(macher.group(index++));
+			res.add(macher.group(index));
 		}
 		return res;
 	}

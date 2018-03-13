@@ -19,6 +19,8 @@ public class BopJson {
 	private Set<String> url2constantNameList;
 	// 读取的UFFUNCTION文件
 	private static Set<String> ufFunctionlines = null;
+	// 请求对应的方法
+	private BopMethod json2Method;
 
 	public String getUrlJson() {
 		return urlJson;
@@ -34,6 +36,14 @@ public class BopJson {
 
 	public void setUrl2constantNameList(Set<String> url2constantNameList) {
 		this.url2constantNameList = url2constantNameList;
+	}
+
+	public BopMethod getJson2Method() {
+		return json2Method;
+	}
+
+	public void setJson2Method(BopMethod json2Method) {
+		this.json2Method = json2Method;
 	}
 
 	public BopJson(String urlJson, List<File> urlFileList) {
