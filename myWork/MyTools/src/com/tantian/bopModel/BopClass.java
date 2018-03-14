@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -133,6 +134,7 @@ public class BopClass {
 	}
 
 	public void printfSelf() {
+		System.out.println("类名称：" + className);
 		System.out.println("类路径：" + classPath);
 		System.out.println("-------------类" + className + "中的方法-----------");
 		List<BopMethod> errorList = new LinkedList<>();
@@ -146,7 +148,7 @@ public class BopClass {
 			}
 		}
 		if (!errorList.isEmpty()) {
-			System.out.println("---------存在出错方法---------");
+			System.out.println("className.存在出错方法------------------------------------------");
 			for (BopMethod temp : errorList) {
 				System.out.println(temp.getMethodClass().className + "." + temp.getMethodName());
 			}
@@ -172,23 +174,27 @@ public class BopClass {
 	}
 
 	private String reader(File interfaceFile2) throws IOException {
-		if (className.equals("ArchiveTask")) {
-			System.out.println();
-		}
 		StringBuffer sb = new StringBuffer();
 		InputStreamReader reader = new InputStreamReader(new FileInputStream(interfaceFile2), "UTF-8");
 		BufferedReader br = new BufferedReader(reader);
 		String line = "";
 		line = br.readLine();
+		Stack<String> stack = new Stack<>();
 		boolean isOut = false;
 		while (line != null) {
 			line = line.trim();
-			if (line.indexOf("image_data = StringUtils.replace(image_data,") > -1) {
-				System.out.println();
+			if (StringUtils.startsWith(line, "//")) {
+				line = br.readLine();
+				continue;
 			}
 			if (StringUtils.indexOf(line, "/*") > -1) {
-				isOut = true;
 				sb.append(StringUtils.substringBeforeLast(line, "/*"));
+				if (StringUtils.indexOf(line, "*/") > -1) {
+					sb.append(StringUtils.substringAfterLast(line, "*/").trim().indexOf("//") > -1 ? ""
+							: StringUtils.substringAfterLast(line, "*/").trim());
+				} else {
+					isOut = true;
+				}
 				line = br.readLine();
 				continue;
 			}
@@ -207,8 +213,15 @@ public class BopClass {
 				line = br.readLine();
 				continue;
 			}
-			if (StringUtils.lastIndexOf(line, "//") > -1) {
-				sb.append(StringUtils.substringBefore(line, "//"));
+			if (StringUtils.indexOf(line, "//") > -1) {
+				int indexFirst = StringUtils.indexOf(line, "\"");
+				int indexLast = StringUtils.lastIndexOf(line, "\"");
+				int com = StringUtils.indexOf(line, "//");
+				if (indexFirst < com && indexLast > com) {
+					sb.append(line);
+				} else {
+					sb.append(StringUtils.substringBefore(line, "//"));
+				}
 				line = br.readLine();
 				continue;
 			}

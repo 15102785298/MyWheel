@@ -157,23 +157,28 @@ public class BopMethod {
 	}
 
 	private String getBodyString(String nowFileString) {
-		if(methodName.equals("queryStockHolders")){
-			System.out.println(nowFileString);
+		if (StringUtils.equals(methodName, "pricingEntrust") && StringUtils.equals("ProdAtomServiceImpl",
+				belongInterface ? methodInterface.getInterfaceName() : methodClass.getClassName())) {
+			System.out.println();
 		}
-		bodyBegin = nowFileString.indexOf(methodName + "(");
+		bodyBegin = nowFileString.indexOf(" " + methodName + "(");
 		if (bodyBegin == -1) {
-			bodyBegin = nowFileString.indexOf(methodName + " ");
+			bodyBegin = nowFileString.indexOf(" " + methodName + " ");
+		}
+		if (bodyBegin == -1) {
+			bodyBegin = nowFileString.indexOf(">" + methodName + " ");
 		}
 		String lastStr = StringUtils.substring(nowFileString, bodyBegin);
 		StringBuffer sb = new StringBuffer();
 		int count = 0;
-		int count2 = 0;
+		boolean throwsMethod = false;
 		boolean canFinish = false;
 		boolean canFinish2 = false;
 		boolean canFinish3 = false;
-		int isMethod = 0;
 		Stack<Character> want = new Stack<>();
-		for (char in : lastStr.toCharArray()) {
+		int length = lastStr.length();
+		for (int i = 0; i < length; i++) {
+			char in = lastStr.charAt(i);
 			if (!canFinish2 && isIn(in)) {
 				if (!want.empty() && getWant(want.peek()).equals(in)) {
 					want.pop();
@@ -186,16 +191,39 @@ public class BopMethod {
 					continue;
 				}
 			}
+			if (throwsMethod && in == '{') {
+				throwsMethod = false;
+			}
+			if(throwsMethod){
+				sb.append(in);
+				continue;
+			}
+			// 方法入参匹配完成
+			// 检查是否存异常声明
 			if (canFinish2 && !canFinish3) {
 				if (in == ' ') {
 					continue;
 				} else {
-					if (in == ';') {
-						if (localRefList == null) {
-							localRefList = new LinkedList<>();
+					if (in != '{') {
+						// 如果括号后是'；'肯定是方法
+						if (in == ';') {
+							if (localRefList == null) {
+								localRefList = new LinkedList<>();
+							}
+							localRefList.add(bodyBegin);
+							return getBodyString(StringUtils.substring(lastStr, methodName.length()));
 						}
-						localRefList.add(bodyBegin);
-						return getBodyString(StringUtils.substring(lastStr, methodName.length()));
+						if (in == 't' && lastStr.charAt(i + 1) == 'h' && lastStr.charAt(i + 2) == 'r'
+								&& lastStr.charAt(i + 3) == 'o' && lastStr.charAt(i + 4) == 'w'
+								&& lastStr.charAt(i + 5) == 's') {
+							throwsMethod = true;
+						} else {
+							if (localRefList == null) {
+								localRefList = new LinkedList<>();
+							}
+							localRefList.add(bodyBegin);
+							return getBodyString(StringUtils.substring(lastStr, methodName.length()));
+						}
 					} else {
 						canFinish3 = true;
 					}
@@ -276,20 +304,22 @@ public class BopMethod {
 	}
 
 	public BopMethod printfSelf() {
-		System.out.println("方法名：" + methodName);
-		System.out.println("类起始位置：" + bodyBegin + "-" + bodyEnd);
-		System.out.println("是否属于接口：" + (belongInterface ? "是" : "否"));
+		 System.out.println("--------------方法." + methodName + "属性------------------------");
+		 System.out.println("类起始位置：" + bodyBegin + "-" + bodyEnd);
+		 System.out.println("是否属于接口：" + (belongInterface ? "是" : "否"));
 		if (!belongInterface && !(methodName.startsWith("get") || methodName.startsWith("set"))
 				&& (bodyBegin == -1 || bodyEnd == -1)) {
 			return this;
 
 		}
 		System.out.println("是否是私有方法：" + (isPrivateMethod ? "是" : "否"));
-		System.out.println("---------------方法体" + methodName + "中调用的方法----------");
-		for (ServiceImpleMethod temp : this.invokeMethods) {
-			temp.printfSelf();
+		if(!this.invokeMethods.isEmpty()){
+			System.out.println("---------------方法体" + methodName + "中调用的方法----------");
+			for (ServiceImpleMethod temp : this.invokeMethods) {
+				temp.printfSelf();
+			}
+			System.out.println("---------------方法体" + methodName + "中调用的方法----------");
 		}
-		System.out.println("---------------方法体" + methodName + "中调用的方法----------");
 		return null;
 	}
 

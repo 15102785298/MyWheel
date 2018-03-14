@@ -46,23 +46,25 @@ public class BopAnaMain {
 		// 开始读取java文件信息（加载类）
 		// 初始化类文件Map
 		for (File temp : javaFileList) {
-			javaFileMap.put(StringUtils.split(temp.getName(), ".")[0], temp);
+			String className = StringUtils.replace(
+					"com\\hundsun\\bop\\" + StringUtils.substringAfterLast(temp.getPath(), "com\\hundsun\\bop\\"), "\\",
+					".");
+			javaFileMap.put(StringUtils.substring(className, 0, className.length() - 5), temp);
 		}
 		BopClassLoaderUtils classLoader = new BopClassLoaderUtils(FileUtils.getAllFile("D:\\aaWork\\WEB-INF", ".jar"));
 		Map<String, Class<?>> allClass = classLoader.getAllClass();
 		for (Entry<String, Class<?>> temp : allClass.entrySet()) {
 			Class<?> tempClass = temp.getValue();
-			String[] classNameList = StringUtils.split(tempClass.getName(), ".");
-			File javaFile = javaFileMap.get(classNameList[classNameList.length - 1]);
+			File javaFile = javaFileMap.get(tempClass.getName());
 			if (javaFile == null) {
 				continue;
 			}
 			if (tempClass.isInterface()) {
-				bopInterfaceMap.put(classNameList[classNameList.length - 1], new BopInterface(javaFile, tempClass));
+				bopInterfaceMap.put(tempClass.getName(), new BopInterface(javaFile, tempClass));
 			} else if (isAction(tempClass)) {
-				bopActionMap.put(classNameList[classNameList.length - 1], new BopClass(javaFile, tempClass));
-			} else {
-				bopClassMap.put(classNameList[classNameList.length - 1], new BopClass(javaFile, tempClass));
+				bopActionMap.put(tempClass.getName(), new BopClass(javaFile, tempClass));
+			} else if (isService(tempClass)) {
+				bopClassMap.put(tempClass.getName(), new BopClass(javaFile, tempClass));
 			}
 		}
 		for (Entry<String, BopInterface> temp : bopInterfaceMap.entrySet()) {
@@ -77,9 +79,19 @@ public class BopAnaMain {
 		}
 	}
 
+	private static boolean isService(Class<?> tempClass) {
+		for (Annotation temp : tempClass.getAnnotations()) {
+			if (StringUtils.endsWith(temp.annotationType().getTypeName(), "org.springframework.stereotype.Service")) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private static boolean isAction(Class<?> tempClass) {
 		for (Annotation temp : tempClass.getAnnotations()) {
-			if (StringUtils.endsWith(temp.getClass().getName(), "Controller")) {
+			if (StringUtils.endsWith(temp.annotationType().getTypeName(),
+					"org.springframework.stereotype.Controller")) {
 				return true;
 			}
 		}

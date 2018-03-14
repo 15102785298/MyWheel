@@ -101,6 +101,7 @@ public class BopInterface {
 		BufferedReader br = new BufferedReader(reader);
 		String line = "";
 		line = br.readLine();
+		Stack<String> stack = new Stack<>();
 		boolean isOut = false;
 		while (line != null) {
 			line = line.trim();
@@ -108,21 +109,46 @@ public class BopInterface {
 				line = br.readLine();
 				continue;
 			}
-			if (StringUtils.startsWith(line, "/*")) {
-				if(StringUtils.indexOf(line, "*/") < 0){
+			if (StringUtils.indexOf(line, "/*") > -1) {
+				sb.append(StringUtils.substringBeforeLast(line, "/*"));
+				if (StringUtils.indexOf(line, "*/") > -1) {
+					sb.append(StringUtils.substringAfterLast(line, "*/").trim().indexOf("//") > -1 ? ""
+							: StringUtils.substringAfterLast(line, "*/").trim());
+				} else {
 					isOut = true;
 				}
+				line = br.readLine();
+				continue;
 			}
-			if (StringUtils.endsWith(line, "*/")) {
+			if (StringUtils.indexOf(line, "*/") > -1) {
 				isOut = false;
+				sb.append(StringUtils.substringAfterLast(line, "*/").trim().indexOf("//") > -1 ? ""
+						: StringUtils.substringAfterLast(line, "*/").trim());
+				line = br.readLine();
+				continue;
 			}
 			if (isOut) {
 				line = br.readLine();
 				continue;
 			}
+			if (StringUtils.startsWith(line, "//")) {
+				line = br.readLine();
+				continue;
+			}
+			if (StringUtils.indexOf(line, "//") > -1) {
+				int indexFirst = StringUtils.indexOf(line, "\"");
+				int indexLast = StringUtils.lastIndexOf(line, "\"");
+				int com = StringUtils.indexOf(line, "//");
+				if (indexFirst < com && indexLast > com) {
+					sb.append(line);
+				} else {
+					sb.append(StringUtils.substringBefore(line, "//"));
+				}
+				line = br.readLine();
+				continue;
+			}
 			sb.append(line).append(" ");
 			line = br.readLine();
-
 		}
 		return sb.toString();
 	}
