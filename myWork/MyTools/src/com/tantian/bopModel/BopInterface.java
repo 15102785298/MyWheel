@@ -109,7 +109,9 @@ public class BopInterface {
 				continue;
 			}
 			if (StringUtils.startsWith(line, "/*")) {
-				isOut = true;
+				if(StringUtils.indexOf(line, "*/") < 0){
+					isOut = true;
+				}
 			}
 			if (StringUtils.endsWith(line, "*/")) {
 				isOut = false;

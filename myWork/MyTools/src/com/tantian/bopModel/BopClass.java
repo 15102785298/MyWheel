@@ -133,13 +133,27 @@ public class BopClass {
 	}
 
 	public void printfSelf() {
-		System.out.println("类名称：" + className);
 		System.out.println("类路径：" + classPath);
 		System.out.println("-------------类" + className + "中的方法-----------");
+		List<BopMethod> errorList = new LinkedList<>();
 		for (BopMethod temp : bopSelfMethods) {
-			temp.printfSelf();
+			BopMethod errorClass = temp.printfSelf();
+			if (errorClass != null) {
+				if (StringUtils.startsWith(errorClass.getMethodClass().getClassClass().getName(), "com.hundsun.bop")
+						&& !StringUtils.startsWith(errorClass.getMethodName(), "access")) {
+					errorList.add(errorClass);
+				}
+			}
+		}
+		if (!errorList.isEmpty()) {
+			System.out.println("---------存在出错方法---------");
+			for (BopMethod temp : errorList) {
+				System.out.println(temp.getMethodClass().className + "." + temp.getMethodName());
+			}
+			System.out.println(this.getFileContant());
 		}
 		System.out.println("-------------类" + className + "中的方法-----------");
+		System.out.println();
 	}
 
 	/**
@@ -158,6 +172,9 @@ public class BopClass {
 	}
 
 	private String reader(File interfaceFile2) throws IOException {
+		if (className.equals("ArchiveTask")) {
+			System.out.println();
+		}
 		StringBuffer sb = new StringBuffer();
 		InputStreamReader reader = new InputStreamReader(new FileInputStream(interfaceFile2), "UTF-8");
 		BufferedReader br = new BufferedReader(reader);
@@ -166,17 +183,32 @@ public class BopClass {
 		boolean isOut = false;
 		while (line != null) {
 			line = line.trim();
+			if (line.indexOf("image_data = StringUtils.replace(image_data,") > -1) {
+				System.out.println();
+			}
+			if (StringUtils.indexOf(line, "/*") > -1) {
+				isOut = true;
+				sb.append(StringUtils.substringBeforeLast(line, "/*"));
+				line = br.readLine();
+				continue;
+			}
+			if (StringUtils.indexOf(line, "*/") > -1) {
+				isOut = false;
+				sb.append(StringUtils.substringAfterLast(line, "*/").trim().indexOf("//") > -1 ? ""
+						: StringUtils.substringAfterLast(line, "*/").trim());
+				line = br.readLine();
+				continue;
+			}
+			if (isOut) {
+				line = br.readLine();
+				continue;
+			}
 			if (StringUtils.startsWith(line, "//")) {
 				line = br.readLine();
 				continue;
 			}
-			if (StringUtils.startsWith(line, "/*")) {
-				isOut = true;
-			}
-			if (StringUtils.endsWith(line, "*/")) {
-				isOut = false;
-			}
-			if (isOut) {
+			if (StringUtils.lastIndexOf(line, "//") > -1) {
+				sb.append(StringUtils.substringBefore(line, "//"));
 				line = br.readLine();
 				continue;
 			}

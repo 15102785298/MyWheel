@@ -24,7 +24,7 @@ public class BopAnaMain {
 		/*
 		 * 开始读取vm文件信息
 		 */
-		String proJectPath = "D://zt//BOP//Sources//WebCodes//bop2.0";
+		String proJectPath = "D:/aaWork/WEBcode/bop-web-20180305/bop2.0";
 		List<File> vmFileList = FileUtils.getAllFile(proJectPath, ".vm");
 		List<File> javaFileList = FileUtils.getAllFile(proJectPath, ".java");
 		Map<String, File> javaFileMap = new HashMap<>();

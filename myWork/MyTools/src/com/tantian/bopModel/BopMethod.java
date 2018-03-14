@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Stack;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -33,6 +34,103 @@ public class BopMethod {
 	private int bodyBegin = -1;
 	private int bodyEnd = -1;
 	private String bodyStr = "";
+	private List<Integer> localRefList = null;
+
+	public boolean isBelongInterface() {
+		return belongInterface;
+	}
+
+	public void setBelongInterface(boolean belongInterface) {
+		this.belongInterface = belongInterface;
+	}
+
+	public boolean isPrivateMethod() {
+		return isPrivateMethod;
+	}
+
+	public void setPrivateMethod(boolean isPrivateMethod) {
+		this.isPrivateMethod = isPrivateMethod;
+	}
+
+	public BopClass getMethodClass() {
+		return methodClass;
+	}
+
+	public void setMethodClass(BopClass methodClass) {
+		this.methodClass = methodClass;
+	}
+
+	public BopInterface getMethodInterface() {
+		return methodInterface;
+	}
+
+	public void setMethodInterface(BopInterface methodInterface) {
+		this.methodInterface = methodInterface;
+	}
+
+	public String getMethodName() {
+		return methodName;
+	}
+
+	public void setMethodName(String methodName) {
+		this.methodName = methodName;
+	}
+
+	public List<ServiceImpleMethod> getInvokeMethods() {
+		return invokeMethods;
+	}
+
+	public void setInvokeMethods(List<ServiceImpleMethod> invokeMethods) {
+		this.invokeMethods = invokeMethods;
+	}
+
+	public Parameter[] getBopInParams() {
+		return bopInParams;
+	}
+
+	public void setBopInParams(Parameter[] bopInParams) {
+		this.bopInParams = bopInParams;
+	}
+
+	public Method getMethod() {
+		return method;
+	}
+
+	public void setMethod(Method method) {
+		this.method = method;
+	}
+
+	public int getBodyBegin() {
+		return bodyBegin;
+	}
+
+	public void setBodyBegin(int bodyBegin) {
+		this.bodyBegin = bodyBegin;
+	}
+
+	public int getBodyEnd() {
+		return bodyEnd;
+	}
+
+	public void setBodyEnd(int bodyEnd) {
+		this.bodyEnd = bodyEnd;
+	}
+
+	public String getBodyStr() {
+		return bodyStr;
+	}
+
+	public void setBodyStr(String bodyStr) {
+		this.bodyStr = bodyStr;
+	}
+
+	public List<Integer> getLocalRefList() {
+		return localRefList;
+	}
+
+	public void setLocalRefList(List<Integer> localRefList) {
+		this.localRefList = localRefList;
+	}
 
 	public BopMethod(BopClass methodClass, String methodBody, Method method) {
 		this.belongInterface = false;
@@ -44,12 +142,24 @@ public class BopMethod {
 		String nowFileString = belongInterface ? methodInterface.getFileContant() : methodClass.getFileContant();
 		this.bodyStr = getBodyString(nowFileString);
 		this.invokeMethods = getAllIncokeMethods();
-		if (methodName.equals("getCsdcChanged")) {
-			System.out.println("dfd");
-		}
+	}
+
+	public BopMethod(BopInterface methodInterface, String methodBody, Method method) {
+		this.belongInterface = true;
+		this.methodInterface = methodInterface;
+		this.methodName = method.getName();
+		this.bopInParams = method.getParameters();
+		this.method = method;
+		this.isPrivateMethod = StringUtils.contains(Modifier.toString(method.getModifiers()), "private");
+		String nowFileString = belongInterface ? methodInterface.getFileContant() : methodClass.getFileContant();
+		this.bodyStr = getBodyString(nowFileString);
+		this.invokeMethods = getAllIncokeMethods();
 	}
 
 	private String getBodyString(String nowFileString) {
+		if(methodName.equals("queryStockHolders")){
+			System.out.println(nowFileString);
+		}
 		bodyBegin = nowFileString.indexOf(methodName + "(");
 		if (bodyBegin == -1) {
 			bodyBegin = nowFileString.indexOf(methodName + " ");
@@ -57,28 +167,41 @@ public class BopMethod {
 		String lastStr = StringUtils.substring(nowFileString, bodyBegin);
 		StringBuffer sb = new StringBuffer();
 		int count = 0;
+		int count2 = 0;
 		boolean canFinish = false;
+		boolean canFinish2 = false;
+		boolean canFinish3 = false;
 		int isMethod = 0;
-		char want = '(';
+		Stack<Character> want = new Stack<>();
 		for (char in : lastStr.toCharArray()) {
-			if (isIn(in)) {
-				if (want != '+') {
-					if (want != in) {
-						return getBodyString(StringUtils.substring(lastStr, methodName.length()));
-					}
-					switch (want) {
-					case '(':
-						want = ')';
-						break;
-					case ')':
-						want = '{';
-						break;
-					case '{':
-						want = '+';
-					default:
-						break;
-					}
+			if (!canFinish2 && isIn(in)) {
+				if (!want.empty() && getWant(want.peek()).equals(in)) {
+					want.pop();
+				} else {
+					want.push(in);
 				}
+				if (want.isEmpty()) {
+					sb.append(in);
+					canFinish2 = true;
+					continue;
+				}
+			}
+			if (canFinish2 && !canFinish3) {
+				if (in == ' ') {
+					continue;
+				} else {
+					if (in == ';') {
+						if (localRefList == null) {
+							localRefList = new LinkedList<>();
+						}
+						localRefList.add(bodyBegin);
+						return getBodyString(StringUtils.substring(lastStr, methodName.length()));
+					} else {
+						canFinish3 = true;
+					}
+
+				}
+
 			}
 			if (in == '{') {
 				count++;
@@ -99,24 +222,23 @@ public class BopMethod {
 
 	}
 
+	private Character getWant(Character peek) {
+		switch (peek) {
+		case '(':
+			return ')';
+		case '{':
+			return '}';
+		default:
+			return '*';
+		}
+
+	}
+
 	private boolean isIn(char in) {
 		if (in == '(' || in == ')' || in == '{' || in == '}') {
 			return true;
 		}
 		return false;
-	}
-
-	public BopMethod(BopInterface methodInterface, String methodBody, Method method) {
-		this.belongInterface = true;
-		this.methodInterface = methodInterface;
-		this.methodName = method.getName();
-		this.bopInParams = method.getParameters();
-		this.method = method;
-		this.isPrivateMethod = StringUtils.contains(Modifier.toString(method.getModifiers()), "private");
-		String nowFileString = belongInterface ? methodInterface.getFileContant() : methodClass.getFileContant();
-		this.bodyStr = getBodyString(nowFileString);
-		this.invokeMethods = getAllIncokeMethods();
-
 	}
 
 	public List<ServiceImpleMethod> getAllIncokeMethods() {
@@ -153,14 +275,22 @@ public class BopMethod {
 		return false;
 	}
 
-	public void printfSelf() {
+	public BopMethod printfSelf() {
 		System.out.println("方法名：" + methodName);
+		System.out.println("类起始位置：" + bodyBegin + "-" + bodyEnd);
 		System.out.println("是否属于接口：" + (belongInterface ? "是" : "否"));
+		if (!belongInterface && !(methodName.startsWith("get") || methodName.startsWith("set"))
+				&& (bodyBegin == -1 || bodyEnd == -1)) {
+			return this;
+
+		}
 		System.out.println("是否是私有方法：" + (isPrivateMethod ? "是" : "否"));
 		System.out.println("---------------方法体" + methodName + "中调用的方法----------");
 		for (ServiceImpleMethod temp : this.invokeMethods) {
 			temp.printfSelf();
 		}
 		System.out.println("---------------方法体" + methodName + "中调用的方法----------");
+		return null;
 	}
+
 }
