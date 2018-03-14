@@ -207,10 +207,6 @@ public class BopMethod {
 					if (in != '{') {
 						// 如果括号后是'；'肯定是方法
 						if (in == ';') {
-							if (localRefList == null) {
-								localRefList = new LinkedList<>();
-							}
-							localRefList.add(bodyBegin);
 							return getBodyString(StringUtils.substring(lastStr, methodName.length()));
 						}
 						if (in == 't' && lastStr.charAt(i + 1) == 'h' && lastStr.charAt(i + 2) == 'r'
@@ -218,10 +214,6 @@ public class BopMethod {
 								&& lastStr.charAt(i + 5) == 's') {
 							throwsMethod = true;
 						} else {
-							if (localRefList == null) {
-								localRefList = new LinkedList<>();
-							}
-							localRefList.add(bodyBegin);
 							return getBodyString(StringUtils.substring(lastStr, methodName.length()));
 						}
 					} else {

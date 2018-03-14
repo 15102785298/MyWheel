@@ -136,26 +136,29 @@ public class BopClass {
 	public void printfSelf() {
 		System.out.println("类名称：" + className);
 		System.out.println("类路径：" + classPath);
-		System.out.println("-------------类" + className + "中的方法-----------");
-		List<BopMethod> errorList = new LinkedList<>();
-		for (BopMethod temp : bopSelfMethods) {
-			BopMethod errorClass = temp.printfSelf();
-			if (errorClass != null) {
-				if (StringUtils.startsWith(errorClass.getMethodClass().getClassClass().getName(), "com.hundsun.bop")
-						&& !StringUtils.startsWith(errorClass.getMethodName(), "access")) {
-					errorList.add(errorClass);
+		if (!bopSelfMethods.isEmpty()) {
+			List<BopMethod> errorList = new LinkedList<>();
+			for (BopMethod temp : bopSelfMethods) {
+				BopMethod errorClass = temp.printfSelf();
+				if (errorClass != null) {
+					if (StringUtils.startsWith(errorClass.getMethodClass().getClassClass().getName(), "com.hundsun.bop")
+							&& !StringUtils.startsWith(errorClass.getMethodName(), "access")) {
+						errorList.add(errorClass);
+					}
 				}
 			}
-		}
-		if (!errorList.isEmpty()) {
-			System.out.println("className.存在出错方法------------------------------------------");
-			for (BopMethod temp : errorList) {
-				System.out.println(temp.getMethodClass().className + "." + temp.getMethodName());
+			if (!errorList.isEmpty()) {
+				System.out.println("className.存在出错方法------------------------------------------");
+				for (BopMethod temp : errorList) {
+					System.out.println(temp.getMethodClass().className + "." + temp.getMethodName());
+				}
+				System.out.println(this.getFileContant());
 			}
-			System.out.println(this.getFileContant());
 		}
-		System.out.println("-------------类" + className + "中的方法-----------");
 		System.out.println();
+		System.out.println();
+		System.out.println();
+
 	}
 
 	/**
