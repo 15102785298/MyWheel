@@ -9,6 +9,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
@@ -120,7 +121,7 @@ public class BopClass {
 		this.fileContant = fileContant;
 	}
 
-	public BopClass(File javaFile, Class<?> tempClass) {
+	public BopClass(File javaFile, Class<?> tempClass, Map<String, Class<?>> allClasses) {
 		this.classFile = javaFile;
 		this.className = StringUtils.split(classFile.getName(), ".")[0];
 		this.classPath = classFile.getAbsolutePath();
@@ -130,7 +131,7 @@ public class BopClass {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		this.bopSelfMethods = getAllSelfMethod(classClass, classFile);
+		this.bopSelfMethods = getAllSelfMethod(classClass, classFile, allClasses);
 
 	}
 
@@ -169,11 +170,12 @@ public class BopClass {
 	 * @param interfaceFile2
 	 * @return
 	 */
-	private List<BopMethod> getAllSelfMethod(Class<?> interfaceClass, File interfaceFile2) {
+	private List<BopMethod> getAllSelfMethod(Class<?> interfaceClass, File interfaceFile2,
+			Map<String, Class<?>> allClasses) {
 		List<BopMethod> res = new ArrayList<>();
 		for (Method temp : interfaceClass.getDeclaredMethods()) {
 			if (!StringUtils.startsWith(temp.getName(), "access$")) {
-				res.add(new BopMethod(this, "", temp, res));
+				res.add(new BopMethod(this, "", temp, res, allClasses));
 			}
 		}
 		int length = res.size();
@@ -203,12 +205,20 @@ public class BopClass {
 		for (int i = 0; i < length; i++) {
 			BopMethod temp = res.get(i);
 			addMethod(temp);
+		}
+		for (BopMethod temp : res) {
 			for (BopMethod temp2 : temp.getRefListAll()) {
-				System.out.println(temp2.getMethodClass().getClassName() + "." + temp2.getMethodName() + '-'
-						+ temp.getMethodClass().getClassName() + "." + temp.getMethodName());
+				temp.addInvokeMethods(temp2);
+			}
+			if (!temp.getInvokeMethods().isEmpty()) {
+				System.out.println(temp.getMethodName() + ".service调用开始------------------");
+				for (ServiceImpleMethod temp2 : temp.getInvokeMethods()) {
+					System.out.println(temp2.getServiceImpl().getSimpleName() + "-->" + temp2.getServiceName() + "."
+							+ temp2.getMethodName());
+				}
+				System.out.println(temp.getMethodName() + ".service调用结束------------------");
 			}
 		}
-		System.out.println();
 		return res;
 	}
 

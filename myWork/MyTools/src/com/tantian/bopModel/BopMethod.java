@@ -143,7 +143,8 @@ public class BopMethod {
 		this.localRefList = localRefList;
 	}
 
-	public BopMethod(BopClass methodClass, String methodBody, Method method, List<BopMethod> nowMethodList) {
+	public BopMethod(BopClass methodClass, String methodBody, Method method, List<BopMethod> nowMethodList,
+			Map<String, Class<?>> allClasses) {
 		this.belongInterface = false;
 		this.methodClass = methodClass;
 		this.methodName = method.getName();
@@ -153,13 +154,12 @@ public class BopMethod {
 		String nowFileString = belongInterface ? methodInterface.getFileContant() : methodClass.getFileContant();
 		String anaString = nowFileString;
 		this.bodyStr = getBodyString(anaString);
-		this.invokeMethods = getAllIncokeMethods();
+		this.invokeMethods = getAllIncokeMethods(allClasses);
 		this.localRefList = calcuteLocalRefList();
 		while ((!analize())) {
-
 			anaString = StringUtils.substring(anaString, anaString.indexOf(this.bodyStr) + methodName.length());
 			this.bodyStr = getBodyString(anaString);
-			this.invokeMethods = getAllIncokeMethods();
+			this.invokeMethods = getAllIncokeMethods(allClasses);
 			this.localRefList = calcuteLocalRefList();
 		}
 	}
@@ -255,21 +255,21 @@ public class BopMethod {
 	}
 
 	private Set<Integer> calcuteLocalRefList() {
-		if(this.getMethodName().equals("delProduct")){
+		if (this.getMethodName().equals("delProduct")) {
 			System.out.println();
 		}
 		this.bodyBegin = StringUtils.indexOf(this.getMethodClass().getFileContant(), " " + this.bodyStr);
-		if(this.bodyBegin == -1){
+		if (this.bodyBegin == -1) {
 			this.bodyBegin = StringUtils.indexOf(this.getMethodClass().getFileContant(), ">" + this.bodyStr);
 		}
 		this.bodyEnd = this.bodyBegin + bodyStr.length();
 		Set<Integer> res = new HashSet<>();
-		Pattern	pattern = Pattern.compile("([^\\.]\\s)+(\\b)" + methodName + "(\\s*\\(|\\()");
+		Pattern pattern = Pattern.compile("([^\\.]\\s)+(\\b)" + methodName + "(\\s*\\(|\\()");
 		Matcher macher = pattern.matcher(methodClass.getFileContant());
 
 		while (macher.find()) {
 			int index = macher.start() + 1;
-			if (bodyBegin > index  || index > bodyEnd) {
+			if (bodyBegin > index || index > bodyEnd) {
 				res.add(index);
 			}
 		}
@@ -285,7 +285,7 @@ public class BopMethod {
 		this.isPrivateMethod = StringUtils.contains(Modifier.toString(method.getModifiers()), "private");
 		String nowFileString = belongInterface ? methodInterface.getFileContant() : methodClass.getFileContant();
 		// this.bodyStr = getBodyString(nowFileString);
-		this.invokeMethods = getAllIncokeMethods();
+		// this.invokeMethods = getAllIncokeMethods();
 	}
 
 	public BopMethod addInvokeMethods(BopMethod aim) {
@@ -476,7 +476,7 @@ public class BopMethod {
 		return false;
 	}
 
-	public List<ServiceImpleMethod> getAllIncokeMethods() {
+	public List<ServiceImpleMethod> getAllIncokeMethods(Map<String, Class<?>> allClasses) {
 		List<ServiceImpleMethod> res = new LinkedList<>();
 		Class<?> nowClass = belongInterface ? methodInterface.getInterfaceClass() : methodClass.getClassClass();
 		Map<String, Class<?>> inClass = new HashMap<>();
@@ -485,6 +485,7 @@ public class BopMethod {
 				inClass.put(temp.getName(), temp.getType());
 			}
 		}
+
 		for (Entry<String, Class<?>> temp : inClass.entrySet()) {
 			if (StringUtils.indexOf(bodyStr, temp.getKey() + ".") > -1) {
 				String tempStr = StringUtils.substring(bodyStr, StringUtils.indexOf(bodyStr, temp.getKey() + "."));
@@ -492,9 +493,22 @@ public class BopMethod {
 					res.add(new ServiceImpleMethod(
 							StringUtils.substring(temp.getValue().getTypeName(),
 									StringUtils.lastIndexOf(temp.getValue().getTypeName(), ".") + 1),
-							StringUtils.split(StringUtils.split(tempStr, "(")[0], ".")[1]));
+							StringUtils.split(StringUtils.split(tempStr, "(")[0], ".")[1], findImpl(allClasses, temp)));
 				} catch (Exception e) {
 					System.out.println(tempStr);
+				}
+			}
+		}
+		return res;
+	}
+
+	private List<Class<?>> findImpl(Map<String, Class<?>> allClasses, Entry<String, Class<?>> interfaceClass) {
+		List<Class<?>> res = new LinkedList<>();
+		for (Entry<String, Class<?>> temp : allClasses.entrySet()) {
+			Class<?> tempClass = temp.getValue();
+			for (Class<?> tempInterface : tempClass.getInterfaces()) {
+				if (tempInterface.getTypeName().equals(interfaceClass.getValue().getTypeName())) {
+					res.add(tempClass);
 				}
 			}
 		}

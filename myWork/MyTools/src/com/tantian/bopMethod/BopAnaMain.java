@@ -63,9 +63,9 @@ public class BopAnaMain {
 			if (tempClass.isInterface()) {
 				bopInterfaceMap.put(tempClass.getName(), new BopInterface(javaFile, tempClass));
 			} else if (isAction(tempClass)) {
-				bopActionMap.put(tempClass.getName(), new BopClass(javaFile, tempClass));
+				bopActionMap.put(tempClass.getName(), new BopClass(javaFile, tempClass, allClass));
 			} else if (isService(tempClass)) {
-				bopClassMap.put(tempClass.getName(), new BopClass(javaFile, tempClass));
+				bopClassMap.put(tempClass.getName(), new BopClass(javaFile, tempClass, allClass));
 			}
 		}
 		for (Entry<String, BopInterface> temp : bopInterfaceMap.entrySet()) {
