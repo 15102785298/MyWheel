@@ -6,8 +6,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 
 import org.apache.commons.lang3.StringUtils;
@@ -126,7 +128,6 @@ public class BopClass {
 		try {
 			this.fileContant = reader(javaFile);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		this.bopSelfMethods = getAllSelfMethod(classClass, classFile);
@@ -169,11 +170,84 @@ public class BopClass {
 	 * @return
 	 */
 	private List<BopMethod> getAllSelfMethod(Class<?> interfaceClass, File interfaceFile2) {
-		List<BopMethod> res = new LinkedList<>();
+		List<BopMethod> res = new ArrayList<>();
 		for (Method temp : interfaceClass.getDeclaredMethods()) {
-			res.add(new BopMethod(this, "", temp));
+			if (!StringUtils.startsWith(temp.getName(), "access$")) {
+				res.add(new BopMethod(this, "", temp, res));
+			}
 		}
+		int length = res.size();
+		for (int i = 0; i < length; i++) {
+			BopMethod temp = res.get(i);
+			for (Integer refItem : temp.getLocalRefList()) {
+				if (getAimMethod(res, temp, refItem.intValue()) != null) {
+					getAimMethod(res, temp, refItem.intValue()).addRefItem(temp);
+					System.out.println(temp.getMethodName() + ".匹配成功-----------");
+					System.out.println(temp.getMethodName() + "." + refItem);
+					System.out.println(getAimMethod(res, temp, refItem.intValue()).getMethodName() + "."
+							+ getAimMethod(res, temp, refItem.intValue()).getBodyBegin() + "-"
+							+ getAimMethod(res, temp, refItem.intValue()).getBodyEnd());
+					System.out.println(temp.getMethodName() + ".匹配成功-----------");
+				} else {
+					System.out.println(temp.getMethodName() + ".匹配失败-----------");
+					System.out.println(refItem);
+					for (BopMethod tt : res) {
+						System.out.println(tt.getMethodName() + ":" + tt.getBodyBegin() + "=" + tt.getBodyEnd());
+					}
+					System.out.println(this.getFileContant());
+					System.out.println(temp.getMethodName() + ".匹配失败-----------");
+				}
+			}
+		}
+
+		for (int i = 0; i < length; i++) {
+			BopMethod temp = res.get(i);
+			addMethod(temp);
+			for (BopMethod temp2 : temp.getRefListAll()) {
+				System.out.println(temp2.getMethodClass().getClassName() + "." + temp2.getMethodName() + '-'
+						+ temp.getMethodClass().getClassName() + "." + temp.getMethodName());
+			}
+		}
+		System.out.println();
 		return res;
+	}
+
+	private BopMethod getAimMethod(List<BopMethod> allMethod, BopMethod nowMethod, Integer index) {
+		for (BopMethod method : allMethod) {
+			if (method.getBodyBegin() - 2 <= index && index <= method.getBodyBegin() + 2) {
+				continue;
+			}
+			if (method.isInTheMethod(index)) {
+				return method;
+			}
+		}
+		return null;
+
+	}
+
+	private Set<BopMethod> addMethod(BopMethod a) {
+		if (a.isRefListEmpty()) {
+			return null;
+		}
+		for (BopMethod temp : a.getRefList()) {
+			a.addRefListAll(addMethod(temp));
+		}
+		a.addRefListAll(a.getRefList());
+		System.out.println(a.getMethodName() + ".调用分析完毕--------");
+		if (a.getRefList().size() != a.getRefListAll().size()) {
+			System.out.println(a.getRefList().size() + "-->" + a.getRefListAll().size());
+		}
+		for (BopMethod temp : a.getRefListAll()) {
+			System.out.println(a.getMethodName() + ".调用了." + temp.getMethodName());
+			for (BopMethod temp2 : temp.getRefList()) {
+				System.out.println(temp2.getMethodName() + "-内部-" + temp2.getRefList().size());
+			}
+			System.out.println(temp.getMethodName() + "--" + temp.getRefList().size());
+		}
+		System.out.println(a.getMethodName() + ".调用分析完毕--------");
+
+		return a.getRefListAll();
+
 	}
 
 	private String reader(File interfaceFile2) throws IOException {

@@ -21,6 +21,7 @@ import com.tantian.bopUtils.FileUtils;
 public class BopAnaMain {
 
 	public static void main(String[] args) {
+		System.out.println("分析开始......");
 		/*
 		 * 开始读取vm文件信息
 		 */

@@ -19,7 +19,11 @@ public class testStatic {
 	public static int aa = 1;
 
 	private static void getStrings() {
-		String str = " package com.hundsun.bop.acct.pub.service;  import com.hundsun.bop.acct.pub.form.view.BankConfig;   public interface IBankHandleService { BankConfig getBankConfig(String bank_no);  String getSubAddress(String bank_no, String address, String fieldName);  boolean fundOutTrans(String bank_no, String bank_error_info); }  ";
+		String aa = "				result = delProduct(product[0], product[1], product[2], product[3]);";
+		Pattern pattern = Pattern.compile("([^\\.]\\s)+(\\b)" + "delProduct" + "(\\s*\\(|\\()");
+		Matcher macher = pattern.matcher(aa);
+		while (macher.find())
+			System.out.println();
 	}
 
 	public static void main(String[] args) {
