@@ -22,7 +22,7 @@ public class getAllRef {
 	private static boolean isShowEmptyFunction = false;
 	static List<File> allJavaList = new LinkedList<>();
 
-	public static void find(String pathName, int depth) throws IOException {
+	public void find(String pathName, int depth) throws IOException {
 		// 获取pathName的File对象
 		File dirFile = new File(pathName);
 		// 判断该文件或目录是否存在，不存在时在控制台输出提醒
@@ -60,7 +60,7 @@ public class getAllRef {
 		}
 	}
 
-	public static List<String> getFunctionValue(File readFile) {
+	public List<String> getFunctionValue(File readFile) {
 		List<String> res = new LinkedList<>();
 		try { // 防止文件建立或读取失败，用catch捕捉错误并打印，也可以throw
 			File filename = readFile; // 要读取以上路径的input。txt文件
@@ -82,7 +82,7 @@ public class getAllRef {
 		return res;
 	}
 
-	public static List<String> getFunctionNameValue(File readFile) {
+	public List<String> getFunctionNameValue(File readFile) {
 		List<String> res = new LinkedList<>();
 		try { // 防止文件建立或读取失败，用catch捕捉错误并打印，也可以throw
 			File filename = readFile; // 要读取以上路径的input。txt文件
@@ -106,7 +106,7 @@ public class getAllRef {
 		return res;
 	}
 
-	public static boolean isFindValueInFile(File readFile, String findValue, List<String> fileStuffix) {
+	public boolean isFindValueInFile(File readFile, String findValue, List<String> fileStuffix) {
 		try { // 防止文件建立或读取失败，用catch捕捉错误并打印，也可以throw
 			File filename = readFile; // 要读取以上路径的input。txt文件
 			// 根据后缀筛选
@@ -143,7 +143,7 @@ public class getAllRef {
 		return false;
 	}
 
-	public static Map<String, Object> findMutiValueInFile(File readFile, List<String> findValueList,
+	public Map<String, Object> findMutiValueInFile(File readFile, List<String> findValueList,
 			List<String> fileStuffix) {
 		Map<String, Object> resFinal = new HashMap<>();
 		Map<String, List<String>> function_fileName2Method = new HashMap<>();
@@ -217,9 +217,10 @@ public class getAllRef {
 		return resFinal;
 	}
 
-	private static void printRes(List<String> functionName, List<String> function,
-			Map<String, List<File>> functionName2File, File file, Map<String, List<String>> functionName2Method,
-			Map<String, List<String>> function_fileName2Method) throws FileNotFoundException, IOException {
+	private void printRes(List<String> functionName, List<String> function, Map<String, List<File>> functionName2File,
+			File file, Map<String, List<String>> functionName2Method,
+			Map<String, List<String>> function_fileName2Method, Map<String, Set<String>> res2)
+			throws FileNotFoundException, IOException {
 		FileOutputStream outStream = new FileOutputStream(file); // 文件输出流用于将数据写入文件
 		// 有被引用的功能号以及引用它的service
 		System.out.println("----------生成文件预览----------");
@@ -245,6 +246,10 @@ public class getAllRef {
 				List<String> function_fileName2MethodList = function_fileName2Method
 						.get(aimValue.getKey() + "-" + temp.getName());
 				for (String MethodName : function_fileName2MethodList) {
+					if (res2.get(temp.getName() + "." + MethodName) == null) {
+						res2.put(functinId, new HashSet<>());
+					}
+					res2.get(temp.getName() + "." + MethodName).add(functinId);
 					sb.setLength(0);
 					sb.append("类名【").append(temp.getName()).append("】方法名【").append(MethodName).append("】")
 							.append("常量名【").append(aimValue.getKey()).append("】");
@@ -267,18 +272,9 @@ public class getAllRef {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void main(String[] args) throws IOException {
-		// 读取目录下所有文件
-		find("D://zt//BOP//Sources//WebCodes//bop2.0", depth);
-		// 存起来
-		List<File> allFile = new LinkedList<>();
-		allFile.addAll(allJavaList);
-		// 清空
-		allJavaList.clear();
-		// 读取UrlValus
-		find("D:/zt/BOP/Sources/WebCodes/bop2.0/bop-biz-platform/bop-pub/src/main/java/com/hundsun/bop/pub/constant/UFFunction.java",
-				depth);
-		List<File> uffunction = new LinkedList<>();
+	public Map<String, Set<String>> getService2FunctionMap(List<File> allFile, List<File> uffunction)
+			throws IOException {
+		Map<String, Set<String>> res = new HashMap<>();
 		uffunction.addAll(allJavaList);
 		// 清空
 		allJavaList.clear();
@@ -312,35 +308,36 @@ public class getAllRef {
 		}
 		System.out.println("转换中....");
 		for (String temp : functionName) {
-			List<File> res = new LinkedList<>();
+			List<File> res2 = new LinkedList<>();
 			for (Entry<File, List<List<String>>> aimValue : File2functionName.entrySet()) {
 				if (aimValue.getValue().get(0).indexOf(temp) > -1) {
-					res.add(aimValue.getKey());
+					res2.add(aimValue.getKey());
 				}
 			}
-			functionName2File.put(temp, res);
+			functionName2File.put(temp, res2);
 		}
 
 		for (String temp : functionName) {
-			List<String> res = new LinkedList<>();
+			List<String> res2 = new LinkedList<>();
 			for (Entry<File, List<List<String>>> aimValue : File2functionName.entrySet()) {
 				if (aimValue.getValue().get(0).indexOf(temp) > -1) {
-					res.addAll(aimValue.getValue().get(1));
+					res2.addAll(aimValue.getValue().get(1));
 				}
 			}
-			functionName2Method.put(temp, res);
+			functionName2Method.put(temp, res2);
 		}
 		String outputpath = "D://BOP被引用的功能号.txt";
 		System.out.println("转换完毕，等待输出....输出路径：" + outputpath);
 		File file = new File(outputpath); // 文件路径（路径+文件名）
 		// 输出结果
-		printRes(functionName, function, functionName2File, file, functionName2Method, function_fileName2Method);
+		printRes(functionName, function, functionName2File, file, functionName2Method, function_fileName2Method, res);
 
 		// 查找这些service在那些action中被注入
 		System.out.println("开始查找action...");
-
 		System.out.println("本次处理常量【" + function.size() + "】条");
 		System.out.println("本次处理文件【" + allFile.size() + "】个");
+		return res;
+
 	}
 
 }

@@ -3,6 +3,7 @@ package com.tantian.bopModel;
 import java.io.File;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -21,9 +22,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Stack;
 
+import org.apache.catalina.connector.Request;
 import org.apache.commons.lang3.StringUtils;
 
 public class BopMethod {
+
+	public static boolean fastModel = false;
+
 	private boolean belongInterface = false;
 	private boolean isPrivateMethod = false;
 	// 方法对应的类
@@ -46,6 +51,29 @@ public class BopMethod {
 	private Set<BopMethod> beRefList = new HashSet<>();
 	private Set<BopMethod> refList = new HashSet<>();
 	private Set<BopMethod> refListAll = new HashSet<>();
+	private String url = "";
+	private Set<String> functionSet = new HashSet<>();
+	private Set<String> functionSetAll = new HashSet<>();
+
+	public Set<String> getFunctionSet() {
+		return functionSet;
+	}
+
+	public void setFunctionSet(Set<String> functionSet) {
+		this.functionSet = functionSet;
+	}
+
+	public Set<String> getFunctionSetAll() {
+		return functionSetAll;
+	}
+
+	public void setFunctionSetAll(Set<String> functionSetAll) {
+		this.functionSetAll = functionSetAll;
+	}
+
+	public void functionSetAllAdd(Set<String> aim) {
+		functionSetAll.addAll(aim);
+	}
 
 	public boolean isBelongInterface() {
 		return belongInterface;
@@ -87,16 +115,28 @@ public class BopMethod {
 		this.methodName = methodName;
 	}
 
-	public List<ServiceImpleMethod> getInvokeMethods() {
-		return invokeMethods;
-	}
-
-	public void setInvokeMethods(List<ServiceImpleMethod> invokeMethods) {
-		this.invokeMethods = invokeMethods;
-	}
-
 	public Parameter[] getBopInParams() {
 		return bopInParams;
+	}
+
+	public String getInParamStr() {
+		return inParamStr;
+	}
+
+	public void setInParamStr(String inParamStr) {
+		this.inParamStr = inParamStr;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public void setRefListAll(Set<BopMethod> refListAll) {
+		this.refListAll = refListAll;
 	}
 
 	public void setBopInParams(Parameter[] bopInParams) {
@@ -117,6 +157,14 @@ public class BopMethod {
 
 	public void setBodyBegin(int bodyBegin) {
 		this.bodyBegin = bodyBegin;
+	}
+
+	public List<ServiceImpleMethod> getInvokeMethods() {
+		return invokeMethods;
+	}
+
+	public void setInvokeMethods(List<ServiceImpleMethod> invokeMethods) {
+		this.invokeMethods = invokeMethods;
 	}
 
 	public int getBodyEnd() {
@@ -144,24 +192,62 @@ public class BopMethod {
 	}
 
 	public BopMethod(BopClass methodClass, String methodBody, Method method, List<BopMethod> nowMethodList,
-			Map<String, Class<?>> allClasses) {
+			Map<String, Class<?>> allClasses, List<String> functionName, List<String> function)
+			throws ClassNotFoundException {
 		this.belongInterface = false;
 		this.methodClass = methodClass;
 		this.methodName = method.getName();
 		this.bopInParams = method.getParameters();
 		this.method = method;
+		for (Annotation temp : method.getAnnotations()) {
+			if (temp.annotationType().getTypeName().equals("org.springframework.web.bind.annotation.RequestMapping")) {
+				Method[] methList = temp.annotationType().getDeclaredMethods();
+				try {
+					this.url = ((String[]) methList[0].invoke(temp))[0];
+					// System.out.println("方法对应url." + getMethodName() + " -
+					// url: " + this.url);
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 		this.isPrivateMethod = StringUtils.contains(Modifier.toString(method.getModifiers()), "private");
 		String nowFileString = belongInterface ? methodInterface.getFileContant() : methodClass.getFileContant();
 		String anaString = nowFileString;
 		this.bodyStr = getBodyString(anaString);
 		this.invokeMethods = getAllIncokeMethods(allClasses);
 		this.localRefList = calcuteLocalRefList();
-		while ((!analize())) {
+		while ((!analize()) && this.bodyStr != "") {
 			anaString = StringUtils.substring(anaString, anaString.indexOf(this.bodyStr) + methodName.length());
 			this.bodyStr = getBodyString(anaString);
 			this.invokeMethods = getAllIncokeMethods(allClasses);
 			this.localRefList = calcuteLocalRefList();
 		}
+		long t1 = System.currentTimeMillis();
+		if (functionName.size() > 0) {
+			this.functionSet = getFunctionSet(functionName, function);
+		} else {
+			this.functionSet = new HashSet<>();
+		}
+		long t2 = System.currentTimeMillis();
+		System.out.println(functionName.size() + ".个方法查询用时：" + (t2 - t1));
+
+	}
+
+	private Set<String> getFunctionSet(List<String> functionName, List<String> function) {
+		Set<String> res = new HashSet<>();
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < functionName.size(); i++) {
+			sb.setLength(0);
+			sb.append("(\\b)+").append(functionName.get(i)).append("(\\b)+");
+			Pattern pattern = Pattern.compile(sb.toString());
+			Matcher macher = pattern.matcher(this.bodyStr);
+			if (macher.find()) {
+				System.out.println(this.getMethodName() + "方法存在常量." + functionName.get(i));
+				res.add(function.get(i));
+			}
+		}
+		return res;
 	}
 
 	private boolean analize() {
@@ -255,7 +341,7 @@ public class BopMethod {
 	}
 
 	private Set<Integer> calcuteLocalRefList() {
-		if (this.getMethodName().equals("delProduct")) {
+		if (this.getMethodName().equals("asyncall")) {
 			System.out.println();
 		}
 		this.bodyBegin = StringUtils.indexOf(this.getMethodClass().getFileContant(), " " + this.bodyStr);
@@ -369,9 +455,14 @@ public class BopMethod {
 	}
 
 	private String getBodyString(String nowFileString) {
+
 		Pattern pattern = Pattern.compile("(\\b)+" + methodName + "(\\s)*\\(");
 		Matcher macher = pattern.matcher(nowFileString);
-		macher.find();
+		if (!macher.find()) {
+			System.out.println("出错---." + this.getMethodClass().getClassName() + "." + this.getMethodName());
+			System.out.println(this.getMethodClass().getFileContant());
+			return "";
+		}
 		bodyBegin = macher.start();
 		if (bodyBegin == -1) {
 			bodyBegin = nowFileString.indexOf(" " + methodName + " ");
@@ -485,17 +576,25 @@ public class BopMethod {
 				inClass.put(temp.getName(), temp.getType());
 			}
 		}
-
+		Pattern pattern = Pattern.compile("");
+		StringBuffer sb = new StringBuffer();
 		for (Entry<String, Class<?>> temp : inClass.entrySet()) {
-			if (StringUtils.indexOf(bodyStr, temp.getKey() + ".") > -1) {
-				String tempStr = StringUtils.substring(bodyStr, StringUtils.indexOf(bodyStr, temp.getKey() + "."));
+			sb.setLength(0);
+			sb.append("(\\b)+").append(temp.getKey()).append("(\\s)*([.])");
+			pattern = Pattern.compile(sb.toString());
+			Matcher macher = pattern.matcher(this.bodyStr);
+
+			if (macher.find()) {
+				String tempStr = StringUtils.substring(bodyStr, macher.start());
+				// 部分类先屏蔽掉
+				if ("transformUtil,sysConfigUtil,waitTimeConfig".indexOf(temp.getKey()) > -1) {
+					continue;
+				}
 				try {
-					res.add(new ServiceImpleMethod(
-							StringUtils.substring(temp.getValue().getTypeName(),
-									StringUtils.lastIndexOf(temp.getValue().getTypeName(), ".") + 1),
+					res.add(new ServiceImpleMethod(temp.getValue().getTypeName(),
 							StringUtils.split(StringUtils.split(tempStr, "(")[0], ".")[1], findImpl(allClasses, temp)));
 				} catch (Exception e) {
-					System.out.println(tempStr);
+					System.out.println("未找到实现类." + tempStr);
 				}
 			}
 		}
@@ -529,6 +628,7 @@ public class BopMethod {
 		// "属性------------------------");
 		System.out.println("方法." + methodName + ".起始位置: " + bodyBegin + "-" + bodyEnd);
 		System.out.println(bodyStr);
+		System.out.println(url);
 		// System.out.println("是否属于接口：" + (belongInterface ? "是" : "否"));
 		// if (!belongInterface && !(methodName.startsWith("get") ||
 		// methodName.startsWith("set"))
@@ -549,6 +649,12 @@ public class BopMethod {
 		if (getLocalRefList() != null && !getLocalRefList().isEmpty()) {
 			System.out.println("方法." + methodName + ".出现位置--------------");
 			for (Integer temp : getLocalRefList()) {
+				System.out.println(temp);
+			}
+		}
+		if (getFunctionSetAll() != null && !getFunctionSetAll().isEmpty()) {
+			System.out.println("方法." + methodName + ".调用功能号--------------");
+			for (String temp : getFunctionSetAll()) {
 				System.out.println(temp);
 			}
 		}

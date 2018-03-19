@@ -29,6 +29,54 @@ public class BopVm {
 	// vm界面原生请求
 	String urlSelfHtm;
 
+	public String getProjectPath() {
+		return projectPath;
+	}
+
+	public void setProjectPath(String projectPath) {
+		this.projectPath = projectPath;
+	}
+
+	public String getVmsName() {
+		return vmsName;
+	}
+
+	public void setVmsName(String vmsName) {
+		this.vmsName = vmsName;
+	}
+
+	public String getVmPath() {
+		return vmPath;
+	}
+
+	public void setVmPath(String vmPath) {
+		this.vmPath = vmPath;
+	}
+
+	public File getVmFile() {
+		return vmFile;
+	}
+
+	public void setVmFile(File vmFile) {
+		this.vmFile = vmFile;
+	}
+
+	public Set<BopJson> getUrlJson() {
+		return urlJson;
+	}
+
+	public void setUrlJson(Set<BopJson> urlJson) {
+		this.urlJson = urlJson;
+	}
+
+	public String getUrlSelfHtm() {
+		return urlSelfHtm;
+	}
+
+	public void setUrlSelfHtm(String urlSelfHtm) {
+		this.urlSelfHtm = urlSelfHtm;
+	}
+
 	public BopVm(File vmFile, String projectPath, List<File> urlFileList) {
 		this.projectPath = projectPath;
 		this.vmFile = vmFile;
@@ -82,6 +130,10 @@ public class BopVm {
 					String finalString = list[0].split("\"")[list[0].split("\"").length - 1] + spliteFlag;
 					if (StringUtils.indexOf(finalString, "/'") > -1) {
 						finalString = finalString.split("\'")[finalString.split("\'").length - 1];
+					}
+					finalString ="/"+StringUtils.substringAfter(finalString, "/");
+					if (StringUtils.contains(finalString, "bop")) {
+						finalString = "/bop" + StringUtils.substringAfter(finalString, "bop");
 					}
 					if (finalString.trim().startsWith("$contain.get")) {
 						line = br.readLine(); // 一次读入一行数据
