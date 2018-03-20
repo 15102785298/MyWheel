@@ -140,14 +140,17 @@ public class BopClass {
 	}
 
 	public void printfSelf() {
+		System.out.println("-----------类：" + className + "分析开始-------------");
 		System.out.println("类名称：" + className);
 		System.out.println("类路径：" + classPath);
+		System.out.println("类信息：" + fileContant);
 		// for (BopMethod temp : bopSelfMethods) {
 		// System.out.println(className + "." + temp.getMethodName());
 		// for (String tempString : temp.getFunctionSetAll()) {
 		// System.out.println(tempString);
 		// }
 		// }
+		System.out.println("类：" + className + "存在以下方法：");
 		if (!bopSelfMethods.isEmpty()) {
 			List<BopMethod> errorList = new LinkedList<>();
 			for (BopMethod temp : bopSelfMethods) {
@@ -160,14 +163,14 @@ public class BopClass {
 				}
 			}
 			if (!errorList.isEmpty()) {
-				System.out.println("className.存在出错方法------------------------------------------");
+				System.out.println("----------类：" + className + ".存在出错方法-----------");
 				for (BopMethod temp : errorList) {
 					System.out.println(temp.getMethodClass().className + "." + temp.getMethodName());
 				}
-				System.out.println(this.getFileContant());
+				// System.out.println(this.getFileContant());
 			}
 		}
-		System.out.println();
+		System.out.println("-----------类：" + className + "分析结束-------------");
 		System.out.println();
 		System.out.println();
 

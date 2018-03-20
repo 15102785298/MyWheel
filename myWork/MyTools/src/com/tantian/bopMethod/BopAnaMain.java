@@ -156,15 +156,23 @@ public class BopAnaMain {
 				}
 			}
 		}
-
+		System.out.println("分析结束");
+		System.out.println("----------------------输出结果中----------------------");
+		System.out.println("类分析结果如下：");
 		for (Entry<String, BopClass> temp : bopActionMap.entrySet()) {
 			temp.getValue().printfSelf();
 		}
-
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		System.out.println("界面分析结果如下：");
 		Set<String> errorUrl = new HashSet<>();
 		// 完成类加载,开始找对应关系
 		for (BopVm vm : bopVmList) {
-			System.out.println("界面" + vm.getVmsName());
+			System.out.println("界面" + vm.getVmsName() + "分析结果:");
+			if (vm.getUrlJson().size() == 0) {
+				System.out.println("无请求调用");
+			}
 			for (BopJson json : vm.getUrlJson()) {
 				BopMethod method = findTheMethodByJson(json, bopActionMap);
 				if (method == null) {
@@ -172,26 +180,31 @@ public class BopAnaMain {
 						errorUrl.add(json.getUrlJson());
 					}
 				} else {
-					System.out.println("请求." + json.getUrlJson() + ".对应功能号：");
+					System.out.println("请求." + json.getUrlJson() + ".调用的功能号：");
 					for (String methodRef : method.getFunctionSetAll()) {
 						System.out.println(methodRef);
 					}
 				}
 			}
+			System.out.println();
+			System.out.println();
+			System.out.println();
 		}
-		System.out.println("异常请求：");
+		System.out.println("----------------------结果输出完毕----------------------");
+		System.out.println();
+		System.out.println("以下请求未找到对应Action声明（本次分析未处理）：");
 		for (String temp : errorUrl) {
 			System.out.println(temp);
 		}
 		System.out.println();
 		long t2 = System.currentTimeMillis();
-		System.out.println("本次分析结束");
 		System.out.println("分析用时：" + (t2 - t1) + "ms");
 		System.out.println("分析vm界面：" + bopVmList.size() + "个");
 		System.out.println("分析Java类：" + bopActionMap.size() + "个");
 		System.out.println("分析Java接口：" + bopInterfaceMap.size() + "个");
 		System.out.println("分析Url请求：" + jsonSet.size() + "个");
 		System.out.println("分析Function：" + function.size() + "个");
+
 	}
 
 	private static Set<String> getJsonSet(List<File> urlValuesList) {

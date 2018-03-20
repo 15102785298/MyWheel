@@ -703,43 +703,31 @@ public class BopMethod {
 	}
 
 	public BopMethod printfSelf() {
-		// System.out.println("--------------方法." + methodName +
-		// "属性------------------------");
-		System.out.println("方法." + methodName + ".起始位置: " + bodyBegin + "-" + bodyEnd);
-		System.out.println("入参个数." + paramCount);
-		System.out.println(bodyStr);
+		System.out.println("---方法：" + this.getMethodClass().getClassName() + "分析开始------");
+		System.out.println("方法名：" + this.getMethodClass().getClassName() + "." + methodName);
+		System.out.println("方法体：" + bodyStr);
+		System.out.println("起止位置: " + bodyBegin + "-" + bodyEnd);
+		System.out.println("入参个数：" + paramCount);
+		System.out.println("方法属性：" + (isPrivateMethod ? "私有方法" : "公共方法"));
+		System.out.println("是否为私有方法：" + (belongInterface ? "是" : "否"));
 		if (StringUtils.isNotBlank(url)) {
-			System.out.println("url." + url);
+			System.out.println("对应Url请求：" + url);
 		}
-		// System.out.println("是否属于接口：" + (belongInterface ? "是" : "否"));
-		// if (!belongInterface && !(methodName.startsWith("get") ||
-		// methodName.startsWith("set"))
-		// && (bodyBegin == -1 || bodyEnd == -1)) {
-		// return this;
-		//
-		// }
-		// System.out.println("是否是私有方法：" + (isPrivateMethod ? "是" : "否"));
-		// if (!this.invokeMethods.isEmpty()) {
-		// System.out.println("---------------方法体" + methodName +
-		// "中调用的方法----------");
-		// for (ServiceImpleMethod temp : this.invokeMethods) {
-		// temp.printfSelf();
-		// }
-		// System.out.println("---------------方法体" + methodName +
-		// "中调用的方法----------");
-		// }
-		// if (getLocalRefList() != null && !getLocalRefList().isEmpty()) {
-		// System.out.println("方法." + methodName + ".出现位置--------------");
-		// for (Integer temp : getLocalRefList()) {
-		// System.out.println(temp);
-		// }
-		// }
 		if (getFunctionSetAll() != null && !getFunctionSetAll().isEmpty()) {
-			System.out.println("方法." + methodName + ".调用功能号--------------");
+			System.out.println("方法" + this.getMethodClass().getClassName() + "." + methodName + "调用的功能号有：");
 			for (String temp : getFunctionSetAll()) {
-				System.out.println(temp);
+				System.out.print(temp);
+				System.out.print("、");
 			}
+			System.out.println();
 		}
+		System.out.println("方法" + this.getMethodClass().getClassName() + "." + methodName + "中调用了以下方法：");
+		for (ServiceImpleMethod temp : this.getInvokeMethods()) {
+			System.out.println("被调用方法名：" + temp.getMethodName());
+			System.out.println("被调用方法入参个数：" + temp.getParamCount());
+			System.out.println("被调用方法对应实现类：" + temp.getServiceImpl().getName());
+		}
+		System.out.println("---方法：" + this.getMethodClass().getClassName() + "分析结束------");
 		System.out.println();
 		return null;
 	}
