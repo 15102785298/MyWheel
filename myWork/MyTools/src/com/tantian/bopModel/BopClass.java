@@ -139,12 +139,12 @@ public class BopClass {
 	public void printfSelf() {
 		System.out.println("类名称：" + className);
 		System.out.println("类路径：" + classPath);
-		for (BopMethod temp : bopSelfMethods) {
-			System.out.println(className + "." + temp.getMethodName());
-			for (String tempString : temp.getFunctionSetAll()) {
-				System.out.println(tempString);
-			}
-		}
+//		for (BopMethod temp : bopSelfMethods) {
+//			System.out.println(className + "." + temp.getMethodName());
+//			for (String tempString : temp.getFunctionSetAll()) {
+//				System.out.println(tempString);
+//			}
+//		}
 		if (!bopSelfMethods.isEmpty()) {
 			List<BopMethod> errorList = new LinkedList<>();
 			for (BopMethod temp : bopSelfMethods) {
@@ -346,5 +346,24 @@ public class BopClass {
 			line = br.readLine();
 		}
 		return sb.toString();
+	}
+
+	public BopMethod getMethodByMethodNameAndParam(ServiceImpleMethod tempInvokedClaa) {
+		boolean isDt = false;
+		String methodName = tempInvokedClaa.getMethodName();
+		int methodParam = tempInvokedClaa.getParamCount();
+		for (BopMethod temp : this.getBopSelfMethods()) {
+			if (temp.getMethodName().equals(methodName)) {
+				if (temp.getParamCount() == methodParam) {
+					return temp;
+				} else {
+					isDt = true;
+				}
+			}
+		}
+		if (isDt) {
+			System.out.println("多态匹配失败" + methodName + methodParam + ".调用位置." + tempInvokedClaa);
+		}
+		return null;
 	}
 }

@@ -45,6 +45,7 @@ public class BopMethod {
 	private Method method;
 	private int bodyBegin = -1;
 	private int bodyEnd = -1;
+	private int paramCount = 0;
 	private String bodyStr = "";
 	private String inParamStr = "";
 	private Set<Integer> localRefList = null;
@@ -54,6 +55,22 @@ public class BopMethod {
 	private String url = "";
 	private Set<String> functionSet = new HashSet<>();
 	private Set<String> functionSetAll = new HashSet<>();
+
+	public static boolean isFastModel() {
+		return fastModel;
+	}
+
+	public static void setFastModel(boolean fastModel) {
+		BopMethod.fastModel = fastModel;
+	}
+
+	public int getParamCount() {
+		return paramCount;
+	}
+
+	public void setParamCount(int paramCount) {
+		this.paramCount = paramCount;
+	}
 
 	public Set<String> getFunctionSet() {
 		return functionSet;
@@ -217,6 +234,7 @@ public class BopMethod {
 		this.bodyStr = getBodyString(anaString);
 		this.invokeMethods = getAllIncokeMethods(allClasses);
 		this.localRefList = calcuteLocalRefList();
+		this.paramCount = method.getParameterCount();
 		while ((!analize()) && this.bodyStr != "") {
 			anaString = StringUtils.substring(anaString, anaString.indexOf(this.bodyStr) + methodName.length());
 			this.bodyStr = getBodyString(anaString);
@@ -341,22 +359,43 @@ public class BopMethod {
 	}
 
 	private Set<Integer> calcuteLocalRefList() {
-		if (this.getMethodName().equals("asyncall")) {
-			System.out.println();
-		}
 		this.bodyBegin = StringUtils.indexOf(this.getMethodClass().getFileContant(), " " + this.bodyStr);
 		if (this.bodyBegin == -1) {
 			this.bodyBegin = StringUtils.indexOf(this.getMethodClass().getFileContant(), ">" + this.bodyStr);
 		}
 		this.bodyEnd = this.bodyBegin + bodyStr.length();
 		Set<Integer> res = new HashSet<>();
-		Pattern pattern = Pattern.compile("([^\\.]\\s)+(\\b)" + methodName + "(\\s*\\(|\\()");
+		Pattern pattern = Pattern.compile("((this[.])|([^.]\\b))" + methodName + "(\\b)(\\s*\\(|\\()");
 		Matcher macher = pattern.matcher(methodClass.getFileContant());
 
 		while (macher.find()) {
 			int index = macher.start() + 1;
 			if (bodyBegin > index || index > bodyEnd) {
-				res.add(index);
+				String opString = StringUtils.substring(methodClass.getFileContant(), index);
+				opString = StringUtils.substringAfter(opString, "(");
+				opString = StringUtils.substringBefore(opString, ")");
+				StringBuffer sb = new StringBuffer();
+				Stack<Character> opStack = new Stack<>();
+				for (char in : opString.toCharArray()) {
+					if (isIn(in)) {
+						if (opStack.size() == 0) {
+							opStack.push(in);
+						}
+						if (opStack.peek() == '(' && in == ')') {
+							opStack.pop();
+						}
+						if (opStack.peek() == '{' && in == '}') {
+							opStack.pop();
+						}
+					}
+					if (opStack.size() == 0) {
+						sb.append(in);
+					}
+				}
+				int inParamCount = StringUtils.countMatches(sb.toString(), ",") + 1;
+				if (inParamCount == this.getMethod().getParameterCount()) {
+					res.add(index);
+				}
 			}
 		}
 		return res;
@@ -583,16 +622,53 @@ public class BopMethod {
 			sb.append("(\\b)+").append(temp.getKey()).append("(\\s)*([.])");
 			pattern = Pattern.compile(sb.toString());
 			Matcher macher = pattern.matcher(this.bodyStr);
-
 			if (macher.find()) {
 				String tempStr = StringUtils.substring(bodyStr, macher.start());
-				// 部分类先屏蔽掉
-				if ("transformUtil,sysConfigUtil,waitTimeConfig".indexOf(temp.getKey()) > -1) {
-					continue;
+				String methodName = StringUtils.split(StringUtils.split(tempStr, "(")[0], ".")[1];
+				StringBuffer sb2 = new StringBuffer();
+				Stack<Character> opStack = new Stack<>();
+				int inParamCount = 0;
+				boolean waitFlag = false;
+				for (char in : tempStr.toCharArray()) {
+					if (!waitFlag && (in == '<' || in == '"')) {
+						waitFlag = true;
+						continue;
+					}
+
+					if (in == '>' || in == '"') {
+						in = 'a';
+						waitFlag = false;
+					}
+					// 换成非,
+					if (waitFlag) {
+						in = 'a';
+					}
+					if (isIn(in)) {
+						if (opStack.size() == 0 || in == '(') {
+							opStack.push(in);
+							sb2.append(in);
+							continue;
+						}
+						if (opStack.peek() == '(' && in == ')') {
+							opStack.pop();
+							sb2.append(in);
+							if (opStack.isEmpty()) {
+								break;
+							}
+							continue;
+						}
+					}
+					if (opStack.size() == 1) {
+						if (in == ',' && in != '(') {
+							inParamCount++;
+						}
+						inParamCount = inParamCount == 0 ? 1 : inParamCount;
+						sb2.append(in);
+					}
 				}
 				try {
-					res.add(new ServiceImpleMethod(temp.getValue().getTypeName(),
-							StringUtils.split(StringUtils.split(tempStr, "(")[0], ".")[1], findImpl(allClasses, temp)));
+					res.add(new ServiceImpleMethod(temp.getValue().getTypeName(), methodName,
+							findImpl(allClasses, temp), inParamCount));
 				} catch (Exception e) {
 					System.out.println("未找到实现类." + tempStr);
 				}
@@ -605,11 +681,17 @@ public class BopMethod {
 		List<Class<?>> res = new LinkedList<>();
 		for (Entry<String, Class<?>> temp : allClasses.entrySet()) {
 			Class<?> tempClass = temp.getValue();
+			if (tempClass.getTypeName().equals(interfaceClass.getValue().getTypeName())) {
+				res.add(tempClass);
+			}
 			for (Class<?> tempInterface : tempClass.getInterfaces()) {
 				if (tempInterface.getTypeName().equals(interfaceClass.getValue().getTypeName())) {
 					res.add(tempClass);
 				}
 			}
+		}
+		if (res.size() == 0) {
+			System.out.println();
 		}
 		return res;
 	}
@@ -627,8 +709,11 @@ public class BopMethod {
 		// System.out.println("--------------方法." + methodName +
 		// "属性------------------------");
 		System.out.println("方法." + methodName + ".起始位置: " + bodyBegin + "-" + bodyEnd);
+		System.out.println("入参个数." + paramCount);
 		System.out.println(bodyStr);
-		System.out.println(url);
+		if (StringUtils.isNotBlank(url)) {
+			System.out.println("url." + url);
+		}
 		// System.out.println("是否属于接口：" + (belongInterface ? "是" : "否"));
 		// if (!belongInterface && !(methodName.startsWith("get") ||
 		// methodName.startsWith("set"))
@@ -646,19 +731,19 @@ public class BopMethod {
 		// System.out.println("---------------方法体" + methodName +
 		// "中调用的方法----------");
 		// }
-		if (getLocalRefList() != null && !getLocalRefList().isEmpty()) {
-			System.out.println("方法." + methodName + ".出现位置--------------");
-			for (Integer temp : getLocalRefList()) {
-				System.out.println(temp);
-			}
-		}
+		// if (getLocalRefList() != null && !getLocalRefList().isEmpty()) {
+		// System.out.println("方法." + methodName + ".出现位置--------------");
+		// for (Integer temp : getLocalRefList()) {
+		// System.out.println(temp);
+		// }
+		// }
 		if (getFunctionSetAll() != null && !getFunctionSetAll().isEmpty()) {
 			System.out.println("方法." + methodName + ".调用功能号--------------");
 			for (String temp : getFunctionSetAll()) {
 				System.out.println(temp);
 			}
 		}
-
+		System.out.println();
 		return null;
 	}
 

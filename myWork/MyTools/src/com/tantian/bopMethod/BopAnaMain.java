@@ -5,6 +5,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -59,11 +60,21 @@ public class BopAnaMain {
 		// 获取functionName列表
 		List<String> functionName = new ArrayList<>();
 		List<String> function = new ArrayList<>();
-		for (File temp : uffunctionFileList) {
-			functionName.addAll(BopService2functionUtils.getFunctionNameValue(temp));
-			// 获取function列表
-			function.addAll(BopService2functionUtils.getFunctionValue(temp));
-		}
+
+		functionName.add("LS_ACCTFORBOP_CLIENT_QRY");
+		functionName.add("CNST_FUNCID_SVRASSET_FUNDACCOUNT_QRY");
+		functionName.add("CNST_FUNCID_CUST_OTHER_GET");
+		functionName.add("LS_ACCTFORBOP_ORGAN_INFO_GET");
+
+		function.add("170002");
+		function.add("321001");
+		function.add("143012");
+		function.add("170001");
+		// for (File temp : uffunctionFileList) {
+		// functionName.addAll(BopService2functionUtils.getFunctionNameValue(temp));
+		// // 获取function列表
+		// function.addAll(BopService2functionUtils.getFunctionValue(temp));
+		// }
 
 		int left = vmFileList.size();
 		List<File> UrlValuesList = FileUtils.getAllFile(proJectPath, "UrlValues.java");
@@ -103,28 +114,38 @@ public class BopAnaMain {
 		System.out.println();
 		System.out.println();
 
+		String ignoreInterface = "com.hundsun.jres.workflow.remoting.service.DefinitionService,接口.com.hundsun.jres.workflow.remoting.service.FormService.未找到实现类接口.com.hundsun.jres.workflow.remoting.service.InstanceService.未找到实现类接口.com.hundsun.jres.workflow.remoting.service.TaskService.未找到实现类com.hundsun.jres.workflow.remoting.service.TaskService,com.hundsun.jres.workflow.remoting.service.InstanceService,com.hundsun.jres.workflow.remoting.service.FormService,com.hundsun.jres.workflow.remoting.service.InstanceService,com.hundsun.jres.workflow.remoting.service.TaskService,com.hundsun.jres.workflow.remoting.service.FormService,com.hundsun.user.biz.impl.cache.CacheManagerImpl,com.hundsun.jresplus.base.cache.CacheManagerImpl,com.hundsun.user.util.SysConfigUtil";
+		String ignoreLoad = ignoreInterface
+				+ "com.hundsun.jresplus.beans.ObjectFactoryImpl,类.com.hundsun.user.service.sysarg.LicenseManageServiceImpl.未加载.com.hundsun.user.biz.impl.login.LoginManagerImpl.未加载com.hundsun.jresplus.web.url.URLBroker,com.hundsun.jresplus.middleware.MiddlewareServiceImpl,com.hundsun.jresplus.web.servlet.MediaTypesHandler,com.hundsun.jresplus.middleware.MiddlewareServiceImpl,com.hundsun.jresplus.base.dict.DictManagerImpl";
+
 		// 将方法注入类的功能号加入setAll
 		for (Entry<String, BopClass> temp : bopActionMap.entrySet()) {
 			BopClass tempClass = temp.getValue();
 			for (BopMethod tempMethod1 : tempClass.getBopSelfMethods()) {
 				for (ServiceImpleMethod tempInvokedClaa : tempMethod1.getInvokeMethods()) {
 					Class<?> implClass = tempInvokedClaa.getServiceImpl();
-					if (implClass != null
-							&& "com.hundsun.user.biz.impl.cache.CacheManagerImpl,".contains(implClass.getName())) {
+					if (implClass != null) {
 						BopClass theClass = bopActionMap.get(implClass.getName());
 						if (theClass != null) {
-							BopMethod theMethod = theClass.getMethodByMethodName(tempInvokedClaa.getMethodName());
+							BopMethod theMethod = theClass.getMethodByMethodNameAndParam(tempInvokedClaa);
 							if (theMethod != null) {
 								tempMethod1.functionSetAllAdd(theMethod.getFunctionSetAll());
 							} else {
-								System.out.println(
-										"类." + implClass.getName() + ".未找到方法." + tempInvokedClaa.getMethodName());
+								System.out.println("类." + implClass.getName() + ".未找到方法."
+										+ tempInvokedClaa.getMethodName() + tempInvokedClaa.getParamCount() + "调用位置."
+										+ tempMethod1.getMethodClass().getClassName() + "."
+										+ tempMethod1.getMethodName());
 							}
 						} else {
-							System.out.println("类." + implClass.getName() + ".未加载");
+							if (ignoreLoad.indexOf(implClass.getName()) < 0) {
+								System.out.println("类." + implClass.getName() + ".未加载");
+							}
 						}
 					} else {
-						System.out.println("接口." + tempInvokedClaa.getServiceName() + ".未找到实现类");
+						if (implClass == null) {
+							System.out.println("接口." + tempInvokedClaa.getServiceName() + ".未找到实现类");
+							continue;
+						}
 					}
 				}
 			}
@@ -134,14 +155,14 @@ public class BopAnaMain {
 			temp.getValue().printfSelf();
 		}
 
+		Set<String> errorUrl = new HashSet<>();
 		// 完成类加载,开始找对应关系
 		for (BopVm vm : bopVmList) {
 			System.out.println("界面" + vm.getVmsName());
 			for (BopJson json : vm.getUrlJson()) {
 				BopMethod method = findTheMethodByJson(json, bopActionMap);
 				if (method == null) {
-					System.out.println(json.getUrlJson());
-					System.out.println("获取请求出现异常!");
+					errorUrl.add(json.getUrlJson());
 				} else {
 					System.out.println("请求." + json.getUrlJson() + ".对应功能号：");
 					for (String methodRef : method.getFunctionSetAll()) {
@@ -149,6 +170,10 @@ public class BopAnaMain {
 					}
 				}
 			}
+		}
+		System.out.println("异常请求：");
+		for (String temp : errorUrl) {
+			System.out.println(temp);
 		}
 
 	}

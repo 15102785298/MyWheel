@@ -9,6 +9,7 @@ public class ServiceImpleMethod {
 	private String methodName;
 	// 对应的实现类
 	private Class<?> serviceImpl;
+	private int paramCount = 0;
 
 	public String getServiceName() {
 		return serviceName;
@@ -20,6 +21,14 @@ public class ServiceImpleMethod {
 
 	public String getMethodName() {
 		return methodName;
+	}
+
+	public int getParamCount() {
+		return paramCount;
+	}
+
+	public void setParamCount(int paramCount) {
+		this.paramCount = paramCount;
 	}
 
 	public void setMethodName(String methodName) {
@@ -43,12 +52,17 @@ public class ServiceImpleMethod {
 		return false;
 	}
 
-	public ServiceImpleMethod(String serviceName, String methodName, List<Class<?>> list) {
-		this.serviceName = serviceName;
-		this.methodName = methodName;
-		this.serviceImpl = list.get(0);
-		if (list.size() != 1 && !"MemberAddress,RandomShortUUID,IQualiArgService,CacheManager,DictManager,PermissionMenu".contains(serviceName)) {
-			System.out.println();
+	public ServiceImpleMethod(String serviceName, String methodName, List<Class<?>> list, int inParamCount) {
+		this.serviceName = serviceName.trim();
+		this.methodName = methodName.trim();
+		this.paramCount = inParamCount;
+		for (Class<?> temp : list) {
+			if (!temp.isInterface()) {
+				this.serviceImpl = temp;
+			}
+		}
+		if (this.serviceImpl == null) {
+			System.out.println("创建方法时未找到实现类,接口为." + serviceName);
 		}
 
 	}
