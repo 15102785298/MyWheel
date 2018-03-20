@@ -47,7 +47,7 @@ public class BopJson {
 	}
 
 	public BopJson(String urlJson, List<File> urlFileList) {
-		this.urlJson = urlJson;
+		this.urlJson = urlJson.trim();
 		this.url2constantNameList = new HashSet<>();
 		for (File temp : urlFileList) {
 			this.url2constantNameList.addAll(searchUrl(temp, this.urlJson));

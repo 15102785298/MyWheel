@@ -124,6 +124,7 @@ public class BopClass {
 
 	public BopClass(File javaFile, Class<?> tempClass, Map<String, Class<?>> allClasses, List<String> functionName,
 			List<String> function) {
+		long t1 = System.currentTimeMillis();
 		this.classFile = javaFile;
 		this.className = StringUtils.split(classFile.getName(), ".")[0];
 		this.classPath = classFile.getAbsolutePath();
@@ -134,17 +135,19 @@ public class BopClass {
 			e.printStackTrace();
 		}
 		this.bopSelfMethods = getAllSelfMethod(classClass, classFile, allClasses, functionName, function);
+		long t2 = System.currentTimeMillis();
+		System.out.println("类." + className + "分析耗时：" + (t2 - t1));
 	}
 
 	public void printfSelf() {
 		System.out.println("类名称：" + className);
 		System.out.println("类路径：" + classPath);
-//		for (BopMethod temp : bopSelfMethods) {
-//			System.out.println(className + "." + temp.getMethodName());
-//			for (String tempString : temp.getFunctionSetAll()) {
-//				System.out.println(tempString);
-//			}
-//		}
+		// for (BopMethod temp : bopSelfMethods) {
+		// System.out.println(className + "." + temp.getMethodName());
+		// for (String tempString : temp.getFunctionSetAll()) {
+		// System.out.println(tempString);
+		// }
+		// }
 		if (!bopSelfMethods.isEmpty()) {
 			List<BopMethod> errorList = new LinkedList<>();
 			for (BopMethod temp : bopSelfMethods) {

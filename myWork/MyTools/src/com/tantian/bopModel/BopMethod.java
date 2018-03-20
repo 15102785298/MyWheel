@@ -241,14 +241,11 @@ public class BopMethod {
 			this.invokeMethods = getAllIncokeMethods(allClasses);
 			this.localRefList = calcuteLocalRefList();
 		}
-		long t1 = System.currentTimeMillis();
 		if (functionName.size() > 0) {
 			this.functionSet = getFunctionSet(functionName, function);
 		} else {
 			this.functionSet = new HashSet<>();
 		}
-		long t2 = System.currentTimeMillis();
-		System.out.println(functionName.size() + ".个方法查询用时：" + (t2 - t1));
 
 	}
 

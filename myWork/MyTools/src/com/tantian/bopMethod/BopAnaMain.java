@@ -1,9 +1,13 @@
 package com.tantian.bopMethod;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -29,11 +33,12 @@ import com.tantian.bopUtils.FileUtils;
 public class BopAnaMain {
 
 	public static void main(String[] args) {
+		long t1 = System.currentTimeMillis();
 		System.out.println("分析开始......");
 		/*
 		 * 开始读取vm文件信息
 		 */
-		String proJectPath = "D:/aaWork/WEBcode/bop-web-20180305/bop2.0";
+		String proJectPath = "D:\\aaWork\\WEBcode\\bop-web-20180305\\bop2.0";
 		List<File> vmFileList = FileUtils.getAllFile(proJectPath, ".vm");
 		List<File> javaFileList = FileUtils.getAllFile(proJectPath, ".java");
 		javaFileList.addAll(FileUtils.getAllFile("D:/aaWork/WEBcode/bop-web-20180305/bop-platform", ".java"));
@@ -61,23 +66,24 @@ public class BopAnaMain {
 		List<String> functionName = new ArrayList<>();
 		List<String> function = new ArrayList<>();
 
-		functionName.add("LS_ACCTFORBOP_CLIENT_QRY");
-		functionName.add("CNST_FUNCID_SVRASSET_FUNDACCOUNT_QRY");
-		functionName.add("CNST_FUNCID_CUST_OTHER_GET");
-		functionName.add("LS_ACCTFORBOP_ORGAN_INFO_GET");
-
-		function.add("170002");
-		function.add("321001");
-		function.add("143012");
-		function.add("170001");
-		// for (File temp : uffunctionFileList) {
-		// functionName.addAll(BopService2functionUtils.getFunctionNameValue(temp));
-		// // 获取function列表
-		// function.addAll(BopService2functionUtils.getFunctionValue(temp));
-		// }
+		// functionName.add("LS_ACCTFORBOP_CLIENT_QRY");
+		// functionName.add("CNST_FUNCID_SVRASSET_FUNDACCOUNT_QRY");
+		// functionName.add("CNST_FUNCID_CUST_OTHER_GET");
+		// functionName.add("LS_ACCTFORBOP_ORGAN_INFO_GET");
+		//
+		// function.add("170002");
+		// function.add("321001");
+		// function.add("143012");
+		// function.add("170001");
+		for (File temp : uffunctionFileList) {
+			functionName.addAll(BopService2functionUtils.getFunctionNameValue(temp));
+			// 获取function列表
+			function.addAll(BopService2functionUtils.getFunctionValue(temp));
+		}
 
 		int left = vmFileList.size();
 		List<File> UrlValuesList = FileUtils.getAllFile(proJectPath, "UrlValues.java");
+		Set<String> jsonSet = getJsonSet(UrlValuesList);
 		// 输入vm文件信息
 		for (File temp : vmFileList) {
 			bopVmList.add(new BopVm(temp, proJectPath, UrlValuesList));
@@ -162,7 +168,9 @@ public class BopAnaMain {
 			for (BopJson json : vm.getUrlJson()) {
 				BopMethod method = findTheMethodByJson(json, bopActionMap);
 				if (method == null) {
-					errorUrl.add(json.getUrlJson());
+					if (jsonSet.contains(json.getUrlJson())) {
+						errorUrl.add(json.getUrlJson());
+					}
 				} else {
 					System.out.println("请求." + json.getUrlJson() + ".对应功能号：");
 					for (String methodRef : method.getFunctionSetAll()) {
@@ -175,7 +183,50 @@ public class BopAnaMain {
 		for (String temp : errorUrl) {
 			System.out.println(temp);
 		}
+		System.out.println();
+		long t2 = System.currentTimeMillis();
+		System.out.println("本次分析结束");
+		System.out.println("分析用时：" + (t2 - t1) + "ms");
+		System.out.println("分析vm界面：" + bopVmList.size() + "个");
+		System.out.println("分析Java类：" + bopActionMap.size() + "个");
+		System.out.println("分析Java接口：" + bopInterfaceMap.size() + "个");
+		System.out.println("分析Url请求：" + jsonSet.size() + "个");
+		System.out.println("分析Function：" + function.size() + "个");
+	}
 
+	private static Set<String> getJsonSet(List<File> urlValuesList) {
+		Set<String> res = new HashSet<>();
+		for (File temp : urlValuesList) {
+			res.addAll(geturl(temp));
+		}
+		return res;
+	}
+
+	private static Collection<? extends String> geturl(File readFile) {
+		Set<String> res = new HashSet<>();
+		try { // 防止文件建立或读取失败，用catch捕捉错误并打印，也可以throw
+			File filename = readFile; // 要读取以上路径的input。txt文件
+			InputStreamReader reader = new InputStreamReader(new FileInputStream(filename), "UTF-8"); // 建立一个输入流对象reader
+			BufferedReader br = new BufferedReader(reader); // 建立一个对象，它把文件内容转成计算机能读懂的语言
+			String line = "";
+
+			line = br.readLine();
+			while (line != null) {
+				line = line.trim();
+				if (!StringUtils.contains(line, "public static") || StringUtils.startsWith(line, "/*")
+						|| StringUtils.startsWith(line, "*")) {
+					line = br.readLine(); // 一次读入一行数据
+					continue;
+				}
+				if (StringUtils.isNotBlank(line) && !StringUtils.startsWith(line, "//")) {
+					res.add(StringUtils.substringBetween(line, "\"", "\"").trim());
+				}
+				line = br.readLine(); // 一次读入一行数据
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return res;
 	}
 
 	private static BopMethod findTheMethodByJson(BopJson json, Map<String, BopClass> bopActionMap) {
