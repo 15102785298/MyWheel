@@ -10,7 +10,9 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
+import java.util.Map.Entry;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -29,6 +31,8 @@ public class BopInterface {
 	private List<BopMethod> interfaceMethods;
 	// 文件内容
 	private String fileContant = "";
+	// 实现类
+	private Class<?> serviceImpl;
 
 	public String getInterfaceName() {
 		return interfaceName;
@@ -78,7 +82,7 @@ public class BopInterface {
 		this.fileContant = fileContant;
 	}
 
-	public BopInterface(File interfaceFile, Class<?> interfaceClass) {
+	public BopInterface(File interfaceFile, Class<?> interfaceClass, Map<String, Class<?>> allClass) {
 		this.interfaceFile = interfaceFile;
 		this.interfaceName = StringUtils.split(interfaceFile.getName(), ".")[0];
 		this.interfacePath = interfaceFile.getAbsolutePath();
@@ -93,6 +97,31 @@ public class BopInterface {
 			e.printStackTrace();
 		}
 		this.interfaceMethods = getAllMethod(interfaceClass, interfaceFile);
+		List<Class<?>> list = findImpl(allClass, interfaceClass);
+		for (Class<?> temp : list) {
+			if (!temp.isInterface()) {
+				this.serviceImpl = temp;
+			}
+		}
+	}
+
+	private List<Class<?>> findImpl(Map<String, Class<?>> allClasses, Class<?> interfaceClass) {
+		List<Class<?>> res = new LinkedList<>();
+		for (Entry<String, Class<?>> temp : allClasses.entrySet()) {
+			Class<?> tempClass = temp.getValue();
+			if (tempClass.getTypeName().equals(interfaceClass.getTypeName())) {
+				res.add(tempClass);
+			}
+			for (Class<?> tempInterface : tempClass.getInterfaces()) {
+				if (tempInterface.getTypeName().equals(interfaceClass.getTypeName())) {
+					res.add(tempClass);
+				}
+			}
+		}
+		if (res.size() == 0) {
+			System.out.println(interfaceClass.getName() + "查找实现类失败");
+		}
+		return res;
 	}
 
 	private String reader(File interfaceFile2) throws IOException {
@@ -153,12 +182,23 @@ public class BopInterface {
 		return sb.toString();
 	}
 
-	public void printfSelf() {
+	public Class<?> getServiceImpl() {
+		return serviceImpl;
+	}
+
+	public void setServiceImpl(Class<?> serviceImpl) {
+		this.serviceImpl = serviceImpl;
+	}
+
+	public void printfSelf(Map<String, BopClass> bopActionMap) {
 		System.out.println("接口名称：" + interfaceName);
 		System.out.println("接口路径：" + interfacePath);
+		if (serviceImpl != null) {
+			System.out.println("接口实现类名称：" + serviceImpl.getName());
+		}
 		System.out.println("-------------接口" + interfaceName + "中的方法-----------");
 		for (BopMethod temp : interfaceMethods) {
-			temp.printfSelf();
+			temp.printfSelf(bopActionMap);
 		}
 		System.out.println("-------------接口" + interfaceName + "中的方法-----------");
 	}

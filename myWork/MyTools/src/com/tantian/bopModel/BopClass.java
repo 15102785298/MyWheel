@@ -6,6 +6,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.security.Policy.Parameters;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -235,18 +237,6 @@ public class BopClass {
 				temp.functionSetAllAdd(temp2.getFunctionSet());
 			}
 			temp.functionSetAllAdd(temp.getFunctionSet());
-
-			if (!temp.getInvokeMethods().isEmpty()) {
-				// System.out.println(temp.getMethodName() +
-				// ".service调用开始------------------");
-				// for (Class<?> temp2 : temp.getInvokeMethods()) {
-				// System.out.println(
-				// temp2.getSimpleName() + "-->" + temp2.getSimpleName() + "." +
-				// temp2.getSimpleName());
-				// }
-				// System.out.println(temp.getMethodName() +
-				// ".service调用结束------------------");
-			}
 		}
 		return res;
 	}
@@ -354,10 +344,8 @@ public class BopClass {
 		return sb.toString();
 	}
 
-	public BopMethod getMethodByMethodNameAndParam(ServiceImpleMethod tempInvokedClaa) {
+	public BopMethod getMethodByMethodNameAndParam(String methodName, int methodParam, String methodService) {
 		boolean isDt = false;
-		String methodName = tempInvokedClaa.getMethodName();
-		int methodParam = tempInvokedClaa.getParamCount();
 		for (BopMethod temp : this.getBopSelfMethods()) {
 			if (temp.getMethodName().equals(methodName)) {
 				if (temp.getParamCount() == methodParam) {
@@ -368,8 +356,29 @@ public class BopClass {
 			}
 		}
 		if (isDt) {
-			System.out.println("多态匹配失败" + methodName + methodParam + ".调用位置." + tempInvokedClaa);
+			System.out.println("多态匹配失败" + methodName + methodParam + ".调用位置." + methodService);
 		}
+		return null;
+	}
+
+	public BopMethod getMethodByMethod(Method method) {
+		for (BopMethod temp : this.getBopSelfMethods()) {
+			Method tempM = temp.getMethod();
+			if (tempM.getName().equals(method.getName()) && tempM.getParameterCount() == method.getParameterCount()) {
+				Parameter[] methodL = method.getParameters();
+				Parameter[] tempML = tempM.getParameters();
+				int length = methodL.length;
+				if (length == 0) {
+					return temp;
+				}
+				for (int i = 0; i < length; i++) {
+					if (methodL[i].getType().getName().equals(tempML[i].getType().getName())) {
+						return temp;
+					}
+				}
+			}
+		}
+		// System.out.println("接口方法：" + method.getName() + ".未找到相应实现方法！ ");
 		return null;
 	}
 }

@@ -32,6 +32,8 @@ import com.tantian.bopUtils.FileUtils;
 
 public class BopAnaMain {
 
+	static int stackNum = 8;
+
 	public static void main(String[] args) {
 		long t1 = System.currentTimeMillis();
 		System.out.println("分析开始......");
@@ -66,20 +68,20 @@ public class BopAnaMain {
 		List<String> functionName = new ArrayList<>();
 		List<String> function = new ArrayList<>();
 
-		// functionName.add("LS_ACCTFORBOP_CLIENT_QRY");
-		// functionName.add("CNST_FUNCID_SVRASSET_FUNDACCOUNT_QRY");
-		// functionName.add("CNST_FUNCID_CUST_OTHER_GET");
-		// functionName.add("LS_ACCTFORBOP_ORGAN_INFO_GET");
-		//
-		// function.add("170002");
-		// function.add("321001");
-		// function.add("143012");
-		// function.add("170001");
-		for (File temp : uffunctionFileList) {
-			functionName.addAll(BopService2functionUtils.getFunctionNameValue(temp));
-			// 获取function列表
-			function.addAll(BopService2functionUtils.getFunctionValue(temp));
-		}
+		functionName.add("LS_ACCTFORBOP_CLIENT_QRY");
+		functionName.add("CNST_FUNCID_SVRASSET_FUNDACCOUNT_QRY");
+		functionName.add("CNST_FUNCID_CUST_OTHER_GET");
+		functionName.add("CNST_FUNCID_FUNDACCT_INFO_GET");
+
+		function.add("170002");
+		function.add("321001");
+		function.add("143012");
+		function.add("144032");
+		// for (File temp : uffunctionFileList) {
+		// functionName.addAll(BopService2functionUtils.getFunctionNameValue(temp));
+		// // 获取function列表
+		// function.addAll(BopService2functionUtils.getFunctionValue(temp));
+		// }
 
 		int left = vmFileList.size();
 		List<File> UrlValuesList = FileUtils.getAllFile(proJectPath, "UrlValues.java");
@@ -107,7 +109,7 @@ public class BopAnaMain {
 				continue;
 			}
 			if (tempClass.isInterface()) {
-				bopInterfaceMap.put(tempClass.getName(), new BopInterface(javaFile, tempClass));
+				bopInterfaceMap.put(tempClass.getName(), new BopInterface(javaFile, tempClass, allClass));
 			} else {
 				bopActionMap.put(tempClass.getName(),
 						new BopClass(javaFile, tempClass, allClass, functionName, function));
@@ -124,33 +126,37 @@ public class BopAnaMain {
 		String ignoreLoad = ignoreInterface
 				+ "com.hundsun.jresplus.beans.ObjectFactoryImpl,类.com.hundsun.user.service.sysarg.LicenseManageServiceImpl.未加载.com.hundsun.user.biz.impl.login.LoginManagerImpl.未加载com.hundsun.jresplus.web.url.URLBroker,com.hundsun.jresplus.middleware.MiddlewareServiceImpl,com.hundsun.jresplus.web.servlet.MediaTypesHandler,com.hundsun.jresplus.middleware.MiddlewareServiceImpl,com.hundsun.jresplus.base.dict.DictManagerImpl";
 
-		// 将方法注入类的功能号加入setAll
-		for (Entry<String, BopClass> temp : bopActionMap.entrySet()) {
-			BopClass tempClass = temp.getValue();
-			for (BopMethod tempMethod1 : tempClass.getBopSelfMethods()) {
-				for (ServiceImpleMethod tempInvokedClaa : tempMethod1.getInvokeMethods()) {
-					Class<?> implClass = tempInvokedClaa.getServiceImpl();
-					if (implClass != null) {
-						BopClass theClass = bopActionMap.get(implClass.getName());
-						if (theClass != null) {
-							BopMethod theMethod = theClass.getMethodByMethodNameAndParam(tempInvokedClaa);
-							if (theMethod != null) {
-								tempMethod1.functionSetAllAdd(theMethod.getFunctionSetAll());
+		for (int i = 0; i < stackNum; i++) {
+			// 将方法注入类的功能号加入setAll
+			for (Entry<String, BopClass> temp : bopActionMap.entrySet()) {
+				BopClass tempClass = temp.getValue();
+				for (BopMethod tempMethod1 : tempClass.getBopSelfMethods()) {
+					for (ServiceImpleMethod tempInvokedClaa : tempMethod1.getInvokeMethods()) {
+						Class<?> implClass = tempInvokedClaa.getServiceImpl();
+						if (implClass != null) {
+							BopClass theClass = bopActionMap.get(implClass.getName());
+							if (theClass != null) {
+								BopMethod theMethod = theClass.getMethodByMethodNameAndParam(
+										tempInvokedClaa.getMethodName(), tempInvokedClaa.getParamCount(),
+										tempInvokedClaa.getServiceName());
+								if (theMethod != null) {
+									tempMethod1.functionSetAllAdd(theMethod.getFunctionSetAll());
+								} else {
+									System.out.println("类." + implClass.getName() + ".未找到方法."
+											+ tempInvokedClaa.getMethodName() + tempInvokedClaa.getParamCount()
+											+ "调用位置." + tempMethod1.getMethodClass().getClassName() + "."
+											+ tempMethod1.getMethodName());
+								}
 							} else {
-								System.out.println("类." + implClass.getName() + ".未找到方法."
-										+ tempInvokedClaa.getMethodName() + tempInvokedClaa.getParamCount() + "调用位置."
-										+ tempMethod1.getMethodClass().getClassName() + "."
-										+ tempMethod1.getMethodName());
+								if (ignoreLoad.indexOf(implClass.getName()) < 0) {
+									System.out.println("类." + implClass.getName() + ".未加载");
+								}
 							}
 						} else {
-							if (ignoreLoad.indexOf(implClass.getName()) < 0) {
-								System.out.println("类." + implClass.getName() + ".未加载");
+							if (implClass == null) {
+								System.out.println("接口." + tempInvokedClaa.getServiceName() + ".未找到实现类");
+								continue;
 							}
-						}
-					} else {
-						if (implClass == null) {
-							System.out.println("接口." + tempInvokedClaa.getServiceName() + ".未找到实现类");
-							continue;
 						}
 					}
 				}
@@ -161,6 +167,10 @@ public class BopAnaMain {
 		System.out.println("类分析结果如下：");
 		for (Entry<String, BopClass> temp : bopActionMap.entrySet()) {
 			temp.getValue().printfSelf();
+		}
+		System.out.println("接口分析结果如下：");
+		for (Entry<String, BopInterface> temp : bopInterfaceMap.entrySet()) {
+			temp.getValue().printfSelf(bopActionMap);
 		}
 		System.out.println();
 		System.out.println();

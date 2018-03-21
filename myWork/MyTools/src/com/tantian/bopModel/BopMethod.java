@@ -55,6 +55,7 @@ public class BopMethod {
 	private String url = "";
 	private Set<String> functionSet = new HashSet<>();
 	private Set<String> functionSetAll = new HashSet<>();
+	private String serviceId = "";
 
 	public static boolean isFastModel() {
 		return fastModel;
@@ -405,9 +406,29 @@ public class BopMethod {
 		this.bopInParams = method.getParameters();
 		this.method = method;
 		this.isPrivateMethod = StringUtils.contains(Modifier.toString(method.getModifiers()), "private");
-		String nowFileString = belongInterface ? methodInterface.getFileContant() : methodClass.getFileContant();
 		// this.bodyStr = getBodyString(nowFileString);
 		// this.invokeMethods = getAllIncokeMethods();
+		this.paramCount = method.getParameterCount();
+		getServiceId();
+	}
+
+	private String getServiceId() {
+		for (Annotation temp : method.getAnnotations()) {
+			if (temp.annotationType().getName().equals("com.hundsun.jresplus.remoting.impl.annotation.Service")) {
+				Method[] methList = temp.annotationType().getDeclaredMethods();
+				for (Method temp2 : methList) {
+					if (temp2.getName().equals("functionId")) {
+						try {
+							this.serviceId = (String) temp2.invoke(temp);
+						} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+
+			}
+		}
+		return null;
 	}
 
 	public BopMethod addInvokeMethods(BopMethod aim) {
@@ -665,7 +686,7 @@ public class BopMethod {
 				}
 				try {
 					res.add(new ServiceImpleMethod(temp.getValue().getTypeName(), methodName,
-							findImpl(allClasses, temp), inParamCount));
+							findImpl(allClasses, temp.getValue()), inParamCount));
 				} catch (Exception e) {
 					System.out.println("未找到实现类." + tempStr);
 				}
@@ -674,21 +695,21 @@ public class BopMethod {
 		return res;
 	}
 
-	private List<Class<?>> findImpl(Map<String, Class<?>> allClasses, Entry<String, Class<?>> interfaceClass) {
+	private List<Class<?>> findImpl(Map<String, Class<?>> allClasses, Class<?> interfaceClass) {
 		List<Class<?>> res = new LinkedList<>();
 		for (Entry<String, Class<?>> temp : allClasses.entrySet()) {
 			Class<?> tempClass = temp.getValue();
-			if (tempClass.getTypeName().equals(interfaceClass.getValue().getTypeName())) {
+			if (tempClass.getTypeName().equals(interfaceClass.getTypeName())) {
 				res.add(tempClass);
 			}
 			for (Class<?> tempInterface : tempClass.getInterfaces()) {
-				if (tempInterface.getTypeName().equals(interfaceClass.getValue().getTypeName())) {
+				if (tempInterface.getTypeName().equals(interfaceClass.getTypeName())) {
 					res.add(tempClass);
 				}
 			}
 		}
 		if (res.size() == 0) {
-			System.out.println();
+			System.out.println(interfaceClass.getName() + "查找实现类失败");
 		}
 		return res;
 	}
@@ -703,33 +724,120 @@ public class BopMethod {
 	}
 
 	public BopMethod printfSelf() {
-		System.out.println("---方法：" + this.getMethodClass().getClassName() + "分析开始------");
-		System.out.println("方法名：" + this.getMethodClass().getClassName() + "." + methodName);
-		System.out.println("方法体：" + bodyStr);
-		System.out.println("起止位置: " + bodyBegin + "-" + bodyEnd);
+		System.out.println("---方法：" + this.getMethodName() + "分析开始------");
+		System.out.println("方法名：" + (belongInterface ? this.getMethodInterface().getInterfaceName()
+				: this.getMethodClass().getClassName()) + "." + methodName);
+		if (!belongInterface) {
+			System.out.println("方法体：" + bodyStr);
+			System.out.println("起止位置: " + bodyBegin + "-" + bodyEnd);
+			System.out.println("方法属性：" + (isPrivateMethod ? "私有方法" : "公共方法"));
+		}
 		System.out.println("入参个数：" + paramCount);
-		System.out.println("方法属性：" + (isPrivateMethod ? "私有方法" : "公共方法"));
-		System.out.println("是否为私有方法：" + (belongInterface ? "是" : "否"));
+		System.out.println("是否为接口方法：" + (belongInterface ? "是" : "否"));
+		if (StringUtils.isNotBlank(serviceId)) {
+			System.out.println("对应原子功能号: " + serviceId);
+		}
+
 		if (StringUtils.isNotBlank(url)) {
 			System.out.println("对应Url请求：" + url);
 		}
 		if (getFunctionSetAll() != null && !getFunctionSetAll().isEmpty()) {
-			System.out.println("方法" + this.getMethodClass().getClassName() + "." + methodName + "调用的功能号有：");
+			System.out.println("方法" + (belongInterface ? this.getMethodInterface().getInterfaceName()
+					: this.getMethodClass().getClassName()) + "." + methodName + "调用的功能号有：");
 			for (String temp : getFunctionSetAll()) {
 				System.out.print(temp);
 				System.out.print("、");
 			}
 			System.out.println();
 		}
-		System.out.println("方法" + this.getMethodClass().getClassName() + "." + methodName + "中调用了以下方法：");
-		for (ServiceImpleMethod temp : this.getInvokeMethods()) {
-			System.out.println("被调用方法名：" + temp.getMethodName());
-			System.out.println("被调用方法入参个数：" + temp.getParamCount());
-			System.out.println("被调用方法对应实现类：" + temp.getServiceImpl().getName());
+		if (this.getInvokeMethods() != null && !this.getInvokeMethods().isEmpty()) {
+			System.out.println("方法" + (belongInterface ? this.getMethodInterface().getInterfaceName()
+					: this.getMethodClass().getClassName()) + "." + methodName + "中调用了以下方法：");
+			for (ServiceImpleMethod temp : this.getInvokeMethods()) {
+				System.out.println("被调用方法名：" + temp.getMethodName());
+				System.out.println("被调用方法入参个数：" + temp.getParamCount());
+				// System.out.println("被调用方法对应实现类：" +
+				// temp.getServiceImpl().getName());
+			}
 		}
-		System.out.println("---方法：" + this.getMethodClass().getClassName() + "分析结束------");
+		System.out.println("---方法：" + this.getMethodName() + "分析结束------");
 		System.out.println();
 		return null;
+	}
+
+	public void printfSelf(Map<String, BopClass> bopActionMap) {
+		System.out.println("---接口方法：" + this.getMethodName() + "分析开始------");
+		System.out.println("方法名：" + (belongInterface ? this.getMethodInterface().getInterfaceName()
+				: this.getMethodClass().getClassName()) + "." + methodName);
+		// if (!belongInterface) {
+		// System.out.println("方法体：" + bodyStr);
+		// System.out.println("起止位置: " + bodyBegin + "-" + bodyEnd);
+		// System.out.println("方法属性：" + (isPrivateMethod ? "私有方法" : "公共方法"));
+		// }
+		System.out.println("入参个数：" + paramCount);
+		System.out.println("是否为接口方法：" + (belongInterface ? "是" : "否"));
+		if (StringUtils.isNotBlank(serviceId)) {
+			System.out.println("对应原子功能号: " + serviceId);
+		}
+
+		if (StringUtils.isNotBlank(url)) {
+			System.out.println("对应Url请求：" + url);
+		}
+		if (getFunctionSetAll() != null && !getFunctionSetAll().isEmpty()) {
+			System.out.println("方法" + (belongInterface ? this.getMethodInterface().getInterfaceName()
+					: this.getMethodClass().getClassName()) + "." + methodName + "调用的功能号有：");
+			for (String temp : getFunctionSetAll()) {
+				System.out.print(temp);
+				System.out.print("、");
+			}
+			System.out.println();
+		}
+		if (this.getInvokeMethods() != null && !this.getInvokeMethods().isEmpty()) {
+			System.out.println("方法" + (belongInterface ? this.getMethodInterface().getInterfaceName()
+					: this.getMethodClass().getClassName()) + "." + methodName + "中调用了以下方法：");
+			for (ServiceImpleMethod temp : this.getInvokeMethods()) {
+				System.out.println("被调用方法名：" + temp.getMethodName());
+				System.out.println("被调用方法入参个数：" + temp.getParamCount());
+				// System.out.println("被调用方法对应实现类：" +
+			}
+		}
+		if (this.getMethodInterface().getInterfaceClass().isInterface()
+				&& this.getMethodInterface().getServiceImpl() != null) {
+			BopClass classTemp = bopActionMap.get(this.getMethodInterface().getServiceImpl().getTypeName());
+			if (classTemp != null) {
+				BopMethod methodTemp = classTemp.getMethodByMethod(this.method);
+				if (methodTemp != null) {
+					if (methodTemp.getFunctionSetAll() != null && !methodTemp.getFunctionSetAll().isEmpty()) {
+						System.out
+								.println("方法"
+										+ (belongInterface ? this.getMethodInterface().getInterfaceName()
+												: this.getMethodClass().getClassName())
+										+ "." + methodName + "调用的功能号有：");
+						for (String temp : methodTemp.getFunctionSetAll()) {
+							System.out.print(temp);
+							System.out.print("、");
+						}
+						System.out.println();
+					}
+				} else {
+					if (StringUtils.indexOf("IBopCacheService,ApiConfig",
+							this.getMethodInterface().getInterfaceName()) < 0) {
+						System.out.println("方法" + method.getName() + "未找到实现方法");
+					}
+				}
+			} else {
+				System.out.println(this.getMethodInterface().getServiceImpl().getTypeName() + "实现类未找到！");
+			}
+		} else {
+			if (StringUtils.indexOf(
+					"ISrvOpenBankAcctService,Figure,Date,CheckValue,IShineEbicsService,QuerySystemUserCache",
+					this.getMethodInterface().getInterfaceName()) < 0) {
+				System.out.println(this.getMethodInterface().getInterfaceName() + ".未找到实现类");
+			}
+		}
+
+		System.out.println("---接口方法：" + this.getMethodName() + "分析结束------");
+		System.out.println();
 	}
 
 }
