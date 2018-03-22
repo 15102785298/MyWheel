@@ -68,20 +68,20 @@ public class BopAnaMain {
 		List<String> functionName = new ArrayList<>();
 		List<String> function = new ArrayList<>();
 
-		functionName.add("LS_ACCTFORBOP_CLIENT_QRY");
-		functionName.add("CNST_FUNCID_SVRASSET_FUNDACCOUNT_QRY");
-		functionName.add("CNST_FUNCID_CUST_OTHER_GET");
-		functionName.add("CNST_FUNCID_FUNDACCT_INFO_GET");
-
-		function.add("170002");
-		function.add("321001");
-		function.add("143012");
-		function.add("144032");
-		// for (File temp : uffunctionFileList) {
-		// functionName.addAll(BopService2functionUtils.getFunctionNameValue(temp));
-		// // 获取function列表
-		// function.addAll(BopService2functionUtils.getFunctionValue(temp));
-		// }
+//		functionName.add("LS_ACCTFORBOP_CLIENT_QRY");
+//		functionName.add("CNST_FUNCID_SVRASSET_FUNDACCOUNT_QRY");
+//		functionName.add("CNST_FUNCID_CUST_OTHER_GET");
+//		functionName.add("CNST_FUNCID_FUNDACCT_INFO_GET");
+//
+//		function.add("170002");
+//		function.add("321001");
+//		function.add("143012");
+//		function.add("144032");
+		for (File temp : uffunctionFileList) {
+			functionName.addAll(BopService2functionUtils.getFunctionNameValue(temp));
+			// 获取function列表
+			function.addAll(BopService2functionUtils.getFunctionValue(temp));
+		}
 
 		int left = vmFileList.size();
 		List<File> UrlValuesList = FileUtils.getAllFile(proJectPath, "UrlValues.java");
@@ -149,11 +149,13 @@ public class BopAnaMain {
 								}
 							} else {
 								if (ignoreLoad.indexOf(implClass.getName()) < 0) {
+									System.out.println("出现异常！");
 									System.out.println("类." + implClass.getName() + ".未加载");
 								}
 							}
 						} else {
 							if (implClass == null) {
+								System.out.println("出现异常！");
 								System.out.println("接口." + tempInvokedClaa.getServiceName() + ".未找到实现类");
 								continue;
 							}

@@ -213,6 +213,7 @@ public class BopClass {
 							aimMethod.getMethodName() + "." + aimMethod.getBodyBegin() + "-" + aimMethod.getBodyEnd());
 					System.out.println();
 				} else {
+					System.out.println("出现异常！");
 					System.out.println(temp.getMethodName() + ".匹配失败-----------");
 					System.out.println(refItem);
 					for (BopMethod tt : res) {
@@ -356,6 +357,7 @@ public class BopClass {
 			}
 		}
 		if (isDt) {
+			System.out.println("出现异常！");
 			System.out.println("多态匹配失败" + methodName + methodParam + ".调用位置." + methodService);
 		}
 		return null;

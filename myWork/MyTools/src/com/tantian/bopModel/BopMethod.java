@@ -640,7 +640,7 @@ public class BopMethod {
 			sb.append("(\\b)+").append(temp.getKey()).append("(\\s)*([.])");
 			pattern = Pattern.compile(sb.toString());
 			Matcher macher = pattern.matcher(this.bodyStr);
-			if (macher.find()) {
+			while (macher.find()) {
 				String tempStr = StringUtils.substring(bodyStr, macher.start());
 				String methodName = StringUtils.split(StringUtils.split(tempStr, "(")[0], ".")[1];
 				StringBuffer sb2 = new StringBuffer();
@@ -688,6 +688,7 @@ public class BopMethod {
 					res.add(new ServiceImpleMethod(temp.getValue().getTypeName(), methodName,
 							findImpl(allClasses, temp.getValue()), inParamCount));
 				} catch (Exception e) {
+					System.out.println("出现异常！");
 					System.out.println("未找到实现类." + tempStr);
 				}
 			}
@@ -709,6 +710,7 @@ public class BopMethod {
 			}
 		}
 		if (res.size() == 0) {
+			System.out.println("出现异常！");
 			System.out.println(interfaceClass.getName() + "查找实现类失败");
 		}
 		return res;
@@ -822,16 +824,19 @@ public class BopMethod {
 				} else {
 					if (StringUtils.indexOf("IBopCacheService,ApiConfig",
 							this.getMethodInterface().getInterfaceName()) < 0) {
+						System.out.println("出现异常！");
 						System.out.println("方法" + method.getName() + "未找到实现方法");
 					}
 				}
 			} else {
+				System.out.println("出现异常！");
 				System.out.println(this.getMethodInterface().getServiceImpl().getTypeName() + "实现类未找到！");
 			}
 		} else {
 			if (StringUtils.indexOf(
 					"ISrvOpenBankAcctService,Figure,Date,CheckValue,IShineEbicsService,QuerySystemUserCache",
 					this.getMethodInterface().getInterfaceName()) < 0) {
+				System.out.println("出现异常！");
 				System.out.println(this.getMethodInterface().getInterfaceName() + ".未找到实现类");
 			}
 		}
