@@ -68,15 +68,15 @@ public class BopAnaMain {
 		List<String> functionName = new ArrayList<>();
 		List<String> function = new ArrayList<>();
 
-//		functionName.add("LS_ACCTFORBOP_CLIENT_QRY");
-//		functionName.add("CNST_FUNCID_SVRASSET_FUNDACCOUNT_QRY");
-//		functionName.add("CNST_FUNCID_CUST_OTHER_GET");
-//		functionName.add("CNST_FUNCID_FUNDACCT_INFO_GET");
-//
-//		function.add("170002");
-//		function.add("321001");
-//		function.add("143012");
-//		function.add("144032");
+		// functionName.add("LS_ACCTFORBOP_CLIENT_QRY");
+		// functionName.add("CNST_FUNCID_SVRASSET_FUNDACCOUNT_QRY");
+		// functionName.add("CNST_FUNCID_CUST_OTHER_GET");
+		// functionName.add("CNST_FUNCID_FUNDACCT_INFO_GET");
+		//
+		// function.add("170002");
+		// function.add("321001");
+		// function.add("143012");
+		// function.add("144032");
 		for (File temp : uffunctionFileList) {
 			functionName.addAll(BopService2functionUtils.getFunctionNameValue(temp));
 			// 获取function列表
@@ -166,6 +166,10 @@ public class BopAnaMain {
 		}
 		System.out.println("分析结束");
 		System.out.println("----------------------输出结果中----------------------");
+		System.out.println("VM分析结果如下：");
+		for (BopVm temp : bopVmList) {
+			temp.printfSelf();
+		}
 		System.out.println("类分析结果如下：");
 		for (Entry<String, BopClass> temp : bopActionMap.entrySet()) {
 			temp.getValue().printfSelf();
@@ -184,6 +188,15 @@ public class BopAnaMain {
 			System.out.println("界面" + vm.getVmsName() + "分析结果:");
 			if (vm.getUrlJson().size() == 0) {
 				System.out.println("无请求调用");
+			}
+			String selfJson = vm.getUrlSelfHtm();
+			BopMethod methodSelf = findTheMethodByJson(selfJson, bopActionMap);
+			if (methodSelf == null) {
+			} else {
+				System.out.println("界面初始化." + selfJson + ".调用的功能号：");
+				for (String methodRef : methodSelf.getFunctionSetAll()) {
+					System.out.println(methodRef);
+				}
 			}
 			for (BopJson json : vm.getUrlJson()) {
 				BopMethod method = findTheMethodByJson(json, bopActionMap);
@@ -217,6 +230,17 @@ public class BopAnaMain {
 		System.out.println("分析Url请求：" + jsonSet.size() + "个");
 		System.out.println("分析Function：" + function.size() + "个");
 
+	}
+
+	private static BopMethod findTheMethodByJson(String selfJson, Map<String, BopClass> bopActionMap) {
+		for (Entry<String, BopClass> tempEntry : bopActionMap.entrySet()) {
+			for (BopMethod tempMethod : tempEntry.getValue().getBopSelfMethods()) {
+				if (StringUtils.endsWith(tempMethod.getUrl(), selfJson.trim())) {
+					return tempMethod;
+				}
+			}
+		}
+		return null;
 	}
 
 	private static Set<String> getJsonSet(List<File> urlValuesList) {

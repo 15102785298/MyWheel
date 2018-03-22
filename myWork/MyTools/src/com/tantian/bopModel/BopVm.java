@@ -85,19 +85,21 @@ public class BopVm {
 		this.urlJson = searchJsonAndHtm(vmFile, urlFileList);
 		this.urlSelfHtm = PatternUtils.patternString(vmPath, "\\\\bop\\\\(\\S*).vm", 0).size() == 0 ? ""
 				: PatternUtils.patternString(vmPath, "\\\\bop\\\\(\\S*).vm", 0).get(0);
-		this.urlJson.add(new BopJson(this.urlSelfHtm, urlFileList));
+		this.urlSelfHtm = StringUtils.replace(this.urlSelfHtm , "\\", "/");
+		this.urlSelfHtm = StringUtils.replace(this.urlSelfHtm , ".vm", ".htm");
+		//this.urlJson.add(new BopJson(this.urlSelfHtm, urlFileList));
 	}
 
 	public void printfSelf() {
 		System.out.println("项目路径：" + projectPath);
-		System.out.println("类名：" + vmsName);
-		System.out.println("类路径：" + vmPath);
+		System.out.println("VM文件名：" + vmsName);
+		System.out.println("VM文件路径：" + vmPath);
 		System.out.println("vm界面原生请求：" + urlSelfHtm);
-		System.out.println("--------vm界面" + vmsName + "中调用的json------");
+		System.out.println("--------vm界面." + vmsName + ".中调用的json------");
 		for (BopJson temp : urlJson) {
 			temp.printfSelf();
 		}
-		System.out.println("--------vm界面" + vmsName + "中调用的json------");
+		System.out.println("--------vm界面." + vmsName + ".中调用的json------");
 	}
 
 	/**
