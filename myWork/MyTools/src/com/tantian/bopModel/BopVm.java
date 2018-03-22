@@ -85,6 +85,7 @@ public class BopVm {
 		this.urlJson = searchJsonAndHtm(vmFile, urlFileList);
 		this.urlSelfHtm = PatternUtils.patternString(vmPath, "\\\\bop\\\\(\\S*).vm", 0).size() == 0 ? ""
 				: PatternUtils.patternString(vmPath, "\\\\bop\\\\(\\S*).vm", 0).get(0);
+		this.urlJson.add(new BopJson(this.urlSelfHtm, urlFileList));
 	}
 
 	public void printfSelf() {
@@ -131,7 +132,7 @@ public class BopVm {
 					if (StringUtils.indexOf(finalString, "/'") > -1) {
 						finalString = finalString.split("\'")[finalString.split("\'").length - 1];
 					}
-					finalString ="/"+StringUtils.substringAfter(finalString, "/");
+					finalString = "/" + StringUtils.substringAfter(finalString, "/");
 					if (StringUtils.contains(finalString, "bop")) {
 						finalString = "/bop" + StringUtils.substringAfter(finalString, "bop");
 					}

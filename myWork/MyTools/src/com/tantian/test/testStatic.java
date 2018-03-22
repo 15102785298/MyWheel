@@ -19,11 +19,15 @@ public class testStatic {
 	public static int aa = 1;
 
 	private static void getStrings() {
-		String aa = "				result = delProduct(product[0], product[1], product[2], product[3]);";
-		Pattern pattern = Pattern.compile("([^\\.]\\s)+(\\b)" + "delProduct" + "(\\s*\\(|\\()");
-		Matcher macher = pattern.matcher(aa);
-		while (macher.find())
-			System.out.println();
+		String str = "public static void main(String[] args)"
+				+ " public static void main(String[] args)public static void main(String[] args)";
+		String ragex = "((\\b)+static(\\b)+)|((\\b)+main(\\b)+)";
+		Pattern p = Pattern.compile(ragex);
+		Matcher m = p.matcher(str);
+		while (m.find()) {
+			String s = m.group();
+			System.out.println(s);
+		}
 	}
 
 	public static void main(String[] args) {
