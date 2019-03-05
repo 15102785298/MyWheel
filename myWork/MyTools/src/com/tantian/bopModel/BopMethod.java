@@ -220,7 +220,12 @@ public class BopMethod {
 			if (temp.annotationType().getTypeName().equals("org.springframework.web.bind.annotation.RequestMapping")) {
 				Method[] methList = temp.annotationType().getDeclaredMethods();
 				try {
-					this.url = ((String[]) methList[0].invoke(temp))[0];
+					for (Method methodTemp : methList) {
+						if (methodTemp.getName().equals("value")) {
+							this.url = ((String[]) methList[1].invoke(temp))[0];
+							break;
+						}
+					}
 					// System.out.println("方法对应url." + getMethodName() + " -
 					// url: " + this.url);
 				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {

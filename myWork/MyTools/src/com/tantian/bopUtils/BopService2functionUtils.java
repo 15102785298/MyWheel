@@ -15,6 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -22,6 +27,7 @@ public class BopService2functionUtils {
 	private static int depth = 100;
 	private static boolean isShowEmptyFunction = false;
 	static List<File> allJavaList = new LinkedList<>();
+	static Set<String> allFunction = new HashSet<>();
 
 	public void find(String pathName, int depth) throws IOException {
 		// 获取pathName的File对象
@@ -145,7 +151,7 @@ public class BopService2functionUtils {
 	}
 
 	public static Map<String, Object> findMutiValueInFile(File readFile, List<String> findValueList,
-			List<String> fileStuffix) {
+			List<String> fileStuffix, boolean faseModel) {
 		Map<String, Object> resFinal = new HashMap<>();
 		Map<String, List<String>> function_fileName2Method = new HashMap<>();
 
@@ -190,7 +196,7 @@ public class BopService2functionUtils {
 					}
 				}
 				for (String temp : findValueList) {
-					if (StringUtils.indexOf(line, temp) > -1) {
+					if (isContain(line, temp, faseModel)) {
 						System.out.println(new StringBuffer().append("文件：").append(filename.getName()).append("找到目标字段：")
 								.append(temp).append("对应方法为：").append(nowMethod == "" ? "未找到方法" : nowMethod)
 								.toString());
@@ -274,7 +280,8 @@ public class BopService2functionUtils {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static Map<String, Set<String>> getService2FunctionMap(List<File> allFile, List<File> uffunction) {
+	public static Map<String, Set<String>> getService2FunctionMap(List<File> allFile, List<File> uffunction,
+			String savePath, boolean fastModel, int maxThread) {
 		Map<String, Set<String>> res = new HashMap<>();
 		uffunction.addAll(allJavaList);
 		// 清空
@@ -287,25 +294,49 @@ public class BopService2functionUtils {
 		Map<String, List<String>> functionName2Method = new HashMap<>();
 		Map<String, List<String>> function_fileName2Method = new HashMap<>();
 		Map<File, List<List<String>>> File2functionName = new HashMap<>();
-		for (File aimFile : allFile) {
-			Map<String, Object> valueInfileMap = findMutiValueInFile(aimFile, functionName, new LinkedList<String>() {
-				{
-					add("UFFunction.java");
-					add("UFFunctionCounter.java");
-					add("USERFunction.java");
-					add("Functions.java");
-					add("FunctionsUf2.java");
-					add("UFFunctionExt.java");
-					add("UFFunctionBus.java");
-					add("Function.java");
-					add("BOPFunction.java");
-					add("FunctionsAcpt.java");
+		List<List<File>> threadWorker = new ArrayList<>();
+		for (int i = 0; i < maxThread; i++) {
+			threadWorker.add(new ArrayList<>());
+		}
+		for (File temp : allFile) {
+			threadWorker.get(indexFor(hash(temp), maxThread)).add(temp);
+		}
+
+		ExecutorService fixedThreadPool = Executors.newFixedThreadPool(maxThread);
+		for (int i = 0; i < maxThread; i++) {
+			final int index = i;
+			fixedThreadPool.execute(new Runnable() {
+				@Override
+				public void run() {
+					for (File aimFile : threadWorker.get(index)) {
+						Map<String, Object> valueInfileMap = findMutiValueInFile(aimFile, functionName,
+								new LinkedList<String>() {
+									{
+										add("UFFunction.java");
+										add("UFFunctionCounter.java");
+										add("USERFunction.java");
+										add("Functions.java");
+										add("FunctionsUf2.java");
+										add("UFFunctionExt.java");
+										add("UFFunctionBus.java");
+										add("Function.java");
+										add("BOPFunction.java");
+										add("FunctionsAcpt.java");
+									}
+								}, fastModel);
+						List<List<String>> temp = (List<List<String>>) valueInfileMap.get("list");
+						function_fileName2Method.putAll((Map<String, List<String>>) valueInfileMap.get("map"));
+						File2functionName.put(aimFile, temp);
+						System.out.println("处理完成文件" + aimFile.getName());
+					}
 				}
 			});
-			List<List<String>> temp = (List<List<String>>) valueInfileMap.get("list");
-			function_fileName2Method.putAll((Map<String, List<String>>) valueInfileMap.get("map"));
-			File2functionName.put(aimFile, temp);
-			System.out.println("处理完成文件" + aimFile.getName());
+		}
+		fixedThreadPool.shutdown();
+		try {// 等待直到所有任务完成
+			fixedThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 		System.out.println("转换中....");
 		for (String temp : functionName) {
@@ -327,7 +358,7 @@ public class BopService2functionUtils {
 			}
 			functionName2Method.put(temp, res2);
 		}
-		String outputpath = "D://BOP被引用的功能号.txt";
+		String outputpath = savePath;
 		System.out.println("转换完毕，等待输出....输出路径：" + outputpath);
 		File file = new File(outputpath); // 文件路径（路径+文件名）
 		// 输出结果
@@ -354,6 +385,26 @@ public class BopService2functionUtils {
 		// 获取function列表
 		List<String> function = getFunctionValue(uffunctionFileList.get(0));
 		return null;
+	}
+
+	private static boolean isContain(String seqStr, String reqStr, boolean fastModel) {
+		if (fastModel) {
+			return StringUtils.indexOf(seqStr, reqStr) > -1;
+		} else {
+			String pattern = "\\b" + reqStr + "\\b";
+			Pattern p = Pattern.compile(pattern);
+			Matcher m = p.matcher(seqStr);
+			return m.lookingAt();
+		}
+	}
+
+	static final int hash(Object key) {
+		int h;
+		return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+	}
+
+	static int indexFor(int h, int length) {
+		return h & (length - 1);
 	}
 
 }
