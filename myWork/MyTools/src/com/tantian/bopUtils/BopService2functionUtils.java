@@ -394,7 +394,7 @@ public class BopService2functionUtils {
 			String pattern = "\\b" + reqStr + "\\b";
 			Pattern p = Pattern.compile(pattern);
 			Matcher m = p.matcher(seqStr);
-			return m.lookingAt();
+			return m.find();
 		}
 	}
 

@@ -34,7 +34,7 @@ public class BopAnaMain {
 
 	public static void main(String[] args) throws IOException {
 
-		String proJectPath = "D:/aaWork/WEBcode/bop-web-20190108/bop2.0";
+		String proJectPath = "D:/aaWork/WEBcode/bop-web-20190311/bop2.0";
 		System.out.println("请输入代码路径：");
 		BufferedReader bf = new BufferedReader(new InputStreamReader(System.in));
 		String customPath = bf.readLine();
@@ -43,17 +43,27 @@ public class BopAnaMain {
 		customPath = bf.readLine();
 		String savePath = "D:/";
 		savePath = StringUtils.isBlank(customPath) ? savePath : customPath;
-		savePath += "/BOP引用的功能号.txt";
 		System.out.println("请选择匹配模式（0:快速模式，更快但可能存在不准确信息（默认），1：完全模式，较慢但精确度高）：");
 		customPath = bf.readLine();
 		boolean fastModel = true;
 		if (StringUtils.equals(customPath, "1")) {
 			fastModel = false;
 		}
+		savePath += "/BOP引用的功能号" + (fastModel ? "快速模式" : "完全模式") + "版本[" + System.currentTimeMillis() + "].txt";
 		System.out.println("请选择分析用的线程数量（建议为物理线程一半，默认单线程）");
 		customPath = bf.readLine();
-		int maxThread = Integer.parseInt(customPath);
-		System.out.println("分析开始......" + proJectPath);
+		int maxThread = 1;
+		try {
+			maxThread = Integer.parseInt(customPath);
+		} catch (Exception e) {
+			maxThread = 1;
+		}
+		System.out.println("分析开始......");
+		System.out.println("代码源路径【" + proJectPath + "】");
+		System.out.println("结果导出路径【" + savePath + "】");
+		System.out.println("导出模式【" + (fastModel ? "快速模式" : "完全模式") + "】");
+		System.out.println("使用线程数量【" + maxThread + "】个");
+		System.out.println("加载数据源......");
 		/*
 		 * 开始读取vm文件信息
 		 */
